@@ -424,58 +424,6 @@
                 "user": false,
                 "module": "node-red",
                 "file": "/Users/saurabh/.npm/_npx/b10a1c2f98b55321/node_modules/@node-red/nodes/core/storage/23-watch.js"
-            },
-            "designer_node_existing": {
-                "name": "designer_node_existing",
-                "types": [
-                    "designer_node_existing"
-                ],
-                "enabled": true,
-                "local": false,
-                "user": false,
-                "module": "node-red",
-                "file": "/Users/saurabh/Documents/server/orch-ai-studio/orch-flow-studio/src/node_red_flows/nodes/designer-nodes/designer_node_existing.js"
-            },
-            "designer_node_new": {
-                "name": "designer_node_new",
-                "types": [
-                    "designer_node_new"
-                ],
-                "enabled": true,
-                "local": false,
-                "user": false,
-                "module": "node-red",
-                "file": "/Users/saurabh/Documents/server/orch-ai-studio/orch-flow-studio/src/node_red_flows/nodes/designer-nodes/designer_node_new.js"
-            }
-        }
-    },
-    "node-red-contrib-designer-nodes": {
-        "name": "node-red-contrib-designer-nodes",
-        "version": "0.1.0",
-        "local": true,
-        "user": true,
-        "nodes": {
-            "designer_node_existing": {
-                "name": "designer_node_existing",
-                "types": [
-                    "designer_node_existing"
-                ],
-                "enabled": true,
-                "local": true,
-                "user": false,
-                "module": "node-red-contrib-designer-nodes",
-                "file": "/Users/saurabh/Documents/server/orch-ai-studio/orch-flow-studio/src/node_red_flows/node_modules/node-red-contrib-designer-nodes/designer_node_existing.js"
-            },
-            "designer_node_new": {
-                "name": "designer_node_new",
-                "types": [
-                    "designer_node_new"
-                ],
-                "enabled": true,
-                "local": true,
-                "user": false,
-                "module": "node-red-contrib-designer-nodes",
-                "file": "/Users/saurabh/Documents/server/orch-ai-studio/orch-flow-studio/src/node_red_flows/node_modules/node-red-contrib-designer-nodes/designer_node_new.js"
             }
         }
     }

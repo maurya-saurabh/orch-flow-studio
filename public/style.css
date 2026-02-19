@@ -1,0 +1,99 @@
+/**
+ * OrchFlow Studio — Production-grade UI enhancements
+ * Custom CSS for Chainlit
+ */
+
+/* Smooth transitions for theme switches and interactions */
+* {
+  scroll-behavior: smooth;
+}
+
+/* Refined message bubbles and cards */
+[data-testid="message"] {
+  border-radius: 0.5rem;
+  transition: box-shadow 0.2s ease;
+}
+
+/* Better focus states for accessibility (WCAG 2.1) */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid hsl(217 91% 60%);
+  outline-offset: 2px;
+}
+
+/* Action buttons — consistent height and alignment */
+[data-testid="action"] {
+  font-weight: 500;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+[data-testid="action"]:hover {
+  transform: translateY(-1px);
+}
+
+[data-testid="action"]:active {
+  transform: translateY(0);
+}
+
+/* Input field polish */
+textarea, input[type="text"] {
+  border-radius: 0.5rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+textarea:focus, input[type="text"]:focus {
+  box-shadow: 0 0 0 2px hsl(217 91% 60% / 0.2);
+}
+
+/* Sidebar refinement */
+[data-testid="sidebar"] {
+  font-weight: 500;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Improve code block readability */
+pre, code {
+  font-variant-ligatures: none;
+  tab-size: 4;
+}
+
+/* Navbar — visible bar with OrchFlow Studio branding */
+header,
+[data-testid="header"],
+nav,
+[role="banner"] {
+  display: flex !important;
+  align-items: center;
+  min-height: 3.5rem;
+  padding: 0 1rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  background: hsl(var(--background));
+  border-bottom: 1px solid hsl(var(--border));
+  box-shadow: 0 1px 2px hsl(var(--border) / 0.3);
+}
+
+/* App name "OrchFlow Studio" in navbar */
+header h1,
+header [class*="title"],
+header [class*="name"],
+[data-testid="header"] h1,
+[data-testid="header"] [class*="title"],
+[data-testid="header"] [class*="name"],
+nav h1,
+nav [class*="title"],
+nav [class*="name"] {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0;
+}

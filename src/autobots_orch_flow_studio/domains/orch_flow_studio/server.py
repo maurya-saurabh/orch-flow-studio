@@ -44,11 +44,35 @@ register_orch_flow_studio_tools()
 NODE_RED_URL = os.environ.get("NODE_RED_URL", "http://localhost:1880").rstrip("/")
 FLOWS_API_URL = f"{NODE_RED_URL}/flows"
 FLOW_EXT = ".json"
-# Path where flow JSON is saved/loaded (set NODE_RED_FLOW_PATH in env)
-NODE_RED_FLOW_PATH = os.environ.get(
-    "NODE_RED_FLOW_PATH",
-    os.path.join(os.path.dirname(os.path.dirname(__file__)), "node_red_flows", "saved_flows.json"),
-)
+
+# Folder for flow JSON files (save, load, list all use this folder when set)
+# Set NODE_RED_FLOW_FOLDER to a directory path; flows save there, browse lists it, load uses it.
+_flow_folder = os.environ.get("NODE_RED_FLOW_FOLDER", "").strip()
+if _flow_folder:
+    _flow_folder = os.path.abspath(_flow_folder)
+
+# Default flow file path: NODE_RED_FLOW_PATH env, or {NODE_RED_FLOW_FOLDER}/saved_flows.json, or built-in default
+NODE_RED_FLOW_PATH: str
+if os.environ.get("NODE_RED_FLOW_PATH", "").strip():
+    NODE_RED_FLOW_PATH = os.path.abspath(os.environ.get("NODE_RED_FLOW_PATH", "").strip())
+elif _flow_folder:
+    NODE_RED_FLOW_PATH = os.path.join(_flow_folder, "saved_flows.json")
+else:
+    NODE_RED_FLOW_PATH = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)), "node_red_flows", "saved_flows.json"
+    )
+
+
+def _get_flow_folder() -> str | None:
+    """Return configured flow folder path if NODE_RED_FLOW_FOLDER is set, else None."""
+    return _flow_folder if _flow_folder else None
+
+
+def _get_flow_directory() -> str:
+    """Return the directory containing flow JSON files (NODE_RED_FLOW_FOLDER or dirname of NODE_RED_FLOW_PATH)."""
+    if _flow_folder:
+        return os.path.abspath(_flow_folder)
+    return os.path.dirname(NODE_RED_FLOW_PATH)
 
 
 def _flows_headers():
@@ -56,7 +80,7 @@ def _flows_headers():
 
 
 async def _get_flows(client: httpx.AsyncClient):
-    """GET current flows from Node-RED (v1 = array of nodes)."""
+    """GET current flows from Flow (v1 = array of nodes)."""
     r = await client.get(FLOWS_API_URL, headers=_flows_headers())
     r.raise_for_status()
     data = r.json()
@@ -64,7 +88,7 @@ async def _get_flows(client: httpx.AsyncClient):
 
 
 async def _post_flows(client: httpx.AsyncClient, flows):
-    """POST flows to Node-RED (v1 array)."""
+    """POST flows to Flow (v1 array)."""
     r = await client.post(FLOWS_API_URL, json=flows, headers=_flows_headers())
     r.raise_for_status()
 
@@ -99,70 +123,91 @@ def _write_flow_file(flows, path: str):
         json.dump(flows, f, indent=2)
 
 
-def _open_nodered_message():
+def _open_flows_message():
     return (
-        f"**Open in new tab:** [Open Node-RED Playground]({NODE_RED_URL}) — "
+        f"**Open in new tab:** [Open Flows]({NODE_RED_URL}) — "
         "right-click → Open link in new tab, or Ctrl/Cmd+Click."
     )
 
 
-async def _load_flows_into_nodered_then_send(flows, source_label: str):
-    """POST flows to Node-RED and send success message with open link."""
+async def _load_flows_then_send(flows, source_label: str, save_path: str | None = None):
+    """POST flows to Flow and send success message with open link. Optionally store path for Update Flow."""
     async with httpx.AsyncClient(timeout=15.0) as client:
         await _post_flows(client, flows)
-    await cl.Message(
-        content=f"Flow loaded from {source_label} into Node-RED. You can work on it and update it.\n\n{_open_nodered_message()}"
-    ).send()
+    if save_path:
+        cl.user_session.set("last_loaded_flow_path", save_path)
+    else:
+        cl.user_session.set("last_loaded_flow_path", None)
+    if save_path:
+        msg = f"Flow loaded from {source_label} into Flow. You can work on it, then use **Update Flow** to save changes back."
+    else:
+        msg = "Temp flow loaded. You can work on it, then use **Save Flow** to save with a name."
+    await cl.Message(content=f"{msg}\n\n{_open_flows_message()}").send()
 
 
-def _nodered_tool_actions():
-    """Return the list of Node-RED sub-tool actions (for Tools section)."""
-    flow_exists = _flow_file_exists()
+def _flow_tool_actions_choice():
+    """Initial choice: Working on new, Working on existing."""
     return [
         cl.Action(
-            name="open_nodered",
-            label="Open Node-RED",
-            payload={"action": "open"},
-            tooltip="Open Node-RED in a new tab",
+            name="flow_working_on_new",
+            label="Working on new",
+            payload={"action": "new"},
+            tooltip="Create or work on a new flow",
         ),
         cl.Action(
-            name="save_flow",
-            label="Save flow to file",
-            payload={"action": "save"},
-            tooltip="Save current Node-RED flows to an absolute path (you will be asked for the path)",
-        ),
-        cl.Action(
-            name="load_flow_open",
-            label="Load flow and open Node-RED"
-            if flow_exists
-            else "Load flow and open Node-RED (no saved file yet)",
-            payload={"action": "load_open"},
-            tooltip="Load default saved flow into Node-RED, then open editor",
-        ),
-        cl.Action(
-            name="browse_saved_flows",
-            label="Browse saved flows",
-            payload={"action": "browse"},
-            tooltip="Enter a directory path to list flow JSON files; click one to load and open",
-        ),
-        cl.Action(
-            name="load_flow_upload",
-            label="Load from uploaded file",
-            payload={"action": "upload"},
-            tooltip="Upload a flow JSON file from your computer, then load into Node-RED and open",
+            name="flow_working_on_existing",
+            label="Working on existing",
+            payload={"action": "existing"},
+            tooltip="Load and work on an existing flow",
         ),
     ]
 
 
-NODERED_COMMAND_ID = "nodered_tools"
+def _flow_tool_actions_row1():
+    """Row 1: Open Flows, Save Flow (for new flow)."""
+    return [
+        cl.Action(
+            name="open_flows",
+            label="Open Flows",
+            payload={"action": "open"},
+            tooltip="Open Flow in a new tab",
+        ),
+        cl.Action(
+            name="save_flow",
+            label="Save Flow",
+            payload={"action": "save"},
+            tooltip="Save current flows (you will be asked for the flow name)",
+        ),
+    ]
 
 
-def _nodered_tools_message_content():
-    """Content for the Node-RED tools panel: choose action + default load path."""
-    content = "**Node-RED tools** — choose an action:"
-    if NODE_RED_FLOW_PATH:
-        content += f"\n\nDefault load path: `{NODE_RED_FLOW_PATH}`"
-    return content
+def _flow_tool_actions_row2():
+    """Row 2: List Flows, Load Flow, Update Flow."""
+    return [
+        cl.Action(
+            name="list_designer_flows",
+            label="List Flows",
+            payload={"action": "browse"},
+            tooltip="List all flow JSON files in the flow directory; click one to load and open",
+        ),
+        cl.Action(
+            name="load_flow_upload",
+            label="Load Flow",
+            payload={"action": "upload"},
+            tooltip="Upload a flow JSON file, load into Flow, and get link to open",
+        ),
+        cl.Action(
+            name="update_flow",
+            label="Update Flow",
+            payload={"action": "update"},
+            tooltip="Save current flows back to the last loaded flow file",
+        ),
+    ]
+
+
+FLOW_COMMAND_ID = "flow_tools"
+PENDING_SAVE_FLOW_KEY = "pending_save_flow"
+PENDING_LOAD_FLOW_KEY = "pending_load_flow"
 
 
 # Check if OAuth is configured
@@ -206,6 +251,28 @@ else:
     pass
 
 
+@cl.set_starters
+async def set_starters(
+    _user: cl.User | None = None,
+    _chat_profile: str | None = None,
+) -> list[cl.Starter]:
+    """Suggested prompts to help users get started."""
+    return [
+        cl.Starter(
+            label="Create a simple HTTP flow",
+            message="Create a simple flow that receives HTTP requests and returns a greeting.",
+        ),
+        cl.Starter(
+            label="Add a function node to process data",
+            message="Add a function node that processes incoming JSON and returns a transformed response.",
+        ),
+        cl.Starter(
+            label="Explain the current flow structure",
+            message="Explain the structure of my current flow and what each node does.",
+        ),
+    ]
+
+
 def _get_user_identifier() -> str:
     """User ID for tracing and state; defaults to anonymous when OAuth is off."""
     user = cl.user_session.get("user")
@@ -235,14 +302,24 @@ async def start():
     set_conversation_id(cl.context.session.thread_id)
     cl.user_session.set("trace_metadata", trace_metadata)
 
-    await cl.Message(content="Hello! I'm Orch Flow Studio. How can I help you today?").send()
+    welcome = """**Welcome to OrchFlow Studio**
+
+I help you design, edit, and manage Node-RED flows using natural language. You can:
+
+- **Design flows** — Use Flow Tools to design the flow
+- **Code generation** — Generate code based on Low Level Design (LLD)
+
+**Quick start:** Use the workflow icon to open the Flow editor, or tell me what flow you would like to create. How can I help you today?
+"""
+    await cl.Message(content=welcome).send()
     await cl.context.emitter.set_commands(
         [
             {
-                "id": NODERED_COMMAND_ID,
-                "description": "Node-RED Tools",
+                "id": FLOW_COMMAND_ID,
+                "description": "Flow Tools",
                 "icon": "workflow",
                 "button": False,
+                "persistent": True,
             },
         ]
     )
@@ -252,12 +329,83 @@ async def start():
 async def on_message(message: cl.Message):
     """Handle incoming messages from the user."""
     set_conversation_id(cl.context.session.thread_id)
-    if getattr(message, "command", None) == NODERED_COMMAND_ID:
+    if getattr(message, "command", None) == FLOW_COMMAND_ID:
         await cl.Message(
-            content=_nodered_tools_message_content(),
-            actions=_nodered_tool_actions(),
+            content="**Flow tools** — choose one:",
+            actions=_flow_tool_actions_choice(),
         ).send()
         return
+
+    # Handle pending Load Flow: user attaches file to message or types cancel
+    if cl.user_session.get(PENDING_LOAD_FLOW_KEY):
+        cl.user_session.set(PENDING_LOAD_FLOW_KEY, False)
+        elements = getattr(message, "elements", []) or []
+        file_elements = [el for el in elements if getattr(el, "path", None)]
+        if not file_elements and (message.content or "").strip().lower() == "cancel":
+            await cl.Message(content="Load cancelled.").send()
+            return
+        if not file_elements:
+            await cl.Message(
+                content="No file attached. Please attach a flow `.json` file to your message (use the paperclip icon), or type `cancel` to abort."
+            ).send()
+            cl.user_session.set(PENDING_LOAD_FLOW_KEY, True)
+            return
+        el = file_elements[0]
+        path = getattr(el, "path", None)
+        if not path or not os.path.isfile(path):
+            await cl.Message(content="Could not read attached file.").send()
+            return
+        try:
+            flows = _read_flows_from_path(path)
+            if not flows:
+                await cl.Message(content="File is empty or not a valid flow JSON.").send()
+                return
+            upload_name = getattr(el, "name", "uploaded_flow.json")
+            if not (upload_name or "").lower().endswith(FLOW_EXT):
+                upload_name = f"{upload_name or 'uploaded_flow'}{FLOW_EXT}"
+            save_path = os.path.join(_get_flow_directory(), upload_name)
+            await _load_flows_then_send(flows, f"uploaded file `{upload_name}`", save_path=save_path)
+        except httpx.ConnectError:
+            await cl.Message(
+                content=f"**Connection error** — Cannot reach Node-RED at `{NODE_RED_URL}`. Ensure Node-RED is running and `NODE_RED_URL` is correct."
+            ).send()
+        except httpx.HTTPStatusError as e:
+            await cl.Message(
+                content=f"**API error** ({e.response.status_code}) — Node-RED Admin API may be disabled. Enable it in Node-RED settings."
+            ).send()
+        except Exception as e:
+            await cl.Message(content=f"**Load failed** — {e!s}").send()
+        return
+
+    # Handle pending Save Flow: user typed flow name in chat (handoff to UI)
+    if cl.user_session.get(PENDING_SAVE_FLOW_KEY):
+        cl.user_session.set(PENDING_SAVE_FLOW_KEY, False)
+        flow_name = (message.content or "").strip()
+        if not flow_name or flow_name.lower() == "cancel":
+            await cl.Message(content="Save cancelled.").send()
+            return
+        if not flow_name.lower().endswith(FLOW_EXT):
+            flow_name = f"{flow_name}{FLOW_EXT}"
+        flow_dir = _get_flow_directory()
+        os.makedirs(flow_dir, exist_ok=True)
+        path = os.path.join(flow_dir, flow_name)
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                flows = await _get_flows(client)
+            _write_flow_file(flows, path)
+            await cl.Message(content=f"Flow saved to `{path}`.").send()
+        except httpx.ConnectError:
+            await cl.Message(
+                content=f"**Connection error** — Cannot reach Node-RED. Ensure it's running at `{NODE_RED_URL}`."
+            ).send()
+        except httpx.HTTPStatusError as e:
+            await cl.Message(
+                content=f"**API error** ({e.response.status_code}) — Enable the Node-RED Admin API in settings."
+            ).send()
+        except Exception as e:
+            await cl.Message(content=f"**Save failed** — {e!s}").send()
+        return
+
     config: RunnableConfig = {
         "configurable": {
             "thread_id": cl.context.session.thread_id,
@@ -269,7 +417,9 @@ async def on_message(message: cl.Message):
     # Reuse the same agent instance from session
     base_agent = cl.user_session.get("base_agent")
     if not base_agent:
-        await cl.Message(content="Error: Session initialization failed. Please refresh.").send()
+        await cl.Message(
+            content="**Session error** — Something went wrong during initialization. Please refresh the page and try again."
+        ).send()
         return
 
     user_id = cl.user_session.get("user_id")
@@ -295,83 +445,56 @@ async def on_message(message: cl.Message):
     logger.debug(f"Agent execution completed with result: {result}")
 
 
-@cl.action_callback("open_nodered")
-async def on_open_nodered(action: cl.Action):
-    """Open Node-RED in a new tab (send link to user)."""
-    await cl.Message(content=_open_nodered_message()).send()
+@cl.action_callback("flow_working_on_new")
+async def on_flow_working_on_new(action: cl.Action):
+    """Show Row 1: Open Flows, Save Flow."""
+    await cl.Message(
+        content="**Working on new** — choose an action:",
+        actions=_flow_tool_actions_row1(),
+    ).send()
+
+
+@cl.action_callback("flow_working_on_existing")
+async def on_flow_working_on_existing(action: cl.Action):
+    """Show Row 2: List Flows, Load Flow, Update Flow."""
+    await cl.Message(
+        content="**Working on existing** — choose an action:",
+        actions=_flow_tool_actions_row2(),
+    ).send()
+
+
+@cl.action_callback("open_flows")
+async def on_open_flows(action: cl.Action):
+    """Load temp/empty flow into Flow, then send open link."""
+    try:
+        await _load_flows_then_send([], "temp flow")
+    except httpx.ConnectError:
+        await cl.Message(
+            content=f"**Connection error** — Cannot reach Node-RED. Ensure it's running at `{NODE_RED_URL}`."
+        ).send()
+    except httpx.HTTPStatusError as e:
+        await cl.Message(
+            content=f"**API error** ({e.response.status_code}) — Enable the Node-RED Admin API in settings."
+        ).send()
+    except Exception as e:
+        await cl.Message(content=f"**Open failed** — {e!s}").send()
 
 
 @cl.action_callback("save_flow")
 async def on_save_flow(action: cl.Action):
-    """Ask for absolute path, then fetch flows from Node-RED and save to that path."""
-    res = await cl.AskUserMessage(
-        content="Enter the **absolute path** where the flow JSON should be saved (e.g. `/home/user/flows.json` or `C:\\flows.json`):",
-        timeout=120,
-        raise_on_timeout=False,
+    """Request flow name via chat to avoid blocking UI. User types name in chat."""
+    cl.user_session.set(PENDING_SAVE_FLOW_KEY, True)
+    await cl.Message(
+        content="**Save Flow** — Type the flow name in the chat below (e.g. `my_flow`), or type `cancel` to abort. The chat input is ready for you."
     ).send()
-    if not res or not res.get("output"):
-        await cl.Message(content="Save cancelled or no path provided.").send()
-        return
-    path = (res["output"] or "").strip()
-    if not path:
-        await cl.Message(content="Save cancelled: path was empty.").send()
-        return
-    path = os.path.abspath(path)
-    try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            flows = await _get_flows(client)
-        _write_flow_file(flows, path)
-        await cl.Message(content=f"Flow saved to `{path}`.").send()
-    except httpx.ConnectError:
-        await cl.Message(
-            content=f"Cannot reach Node-RED at `{NODE_RED_URL}`. Is it running?"
-        ).send()
-    except httpx.HTTPStatusError as e:
-        await cl.Message(
-            content=f"Node-RED API error: {e.response.status_code}. Enable Admin API or check auth."
-        ).send()
-    except Exception as e:
-        await cl.Message(content=f"Save failed: {e!s}").send()
 
 
-@cl.action_callback("load_flow_open")
-async def on_load_flow_open(action: cl.Action):
-    """Load default saved flow from NODE_RED_FLOW_PATH into Node-RED, then send link."""
-    if not _flow_file_exists():
-        await cl.Message(
-            content=f"No saved flow at `{NODE_RED_FLOW_PATH}`. Save a flow from Node-RED first, or set `NODE_RED_FLOW_PATH`."
-        ).send()
-        return
-    try:
-        flows = _read_flows_from_path(NODE_RED_FLOW_PATH)
-        await _load_flows_into_nodered_then_send(flows, f"`{NODE_RED_FLOW_PATH}`")
-    except httpx.ConnectError:
-        await cl.Message(
-            content=f"Cannot reach Node-RED at `{NODE_RED_URL}`. Is it running?"
-        ).send()
-    except httpx.HTTPStatusError as e:
-        await cl.Message(
-            content=f"Node-RED API error: {e.response.status_code}. Enable Admin API or check auth."
-        ).send()
-    except Exception as e:
-        await cl.Message(content=f"Load failed: {e!s}").send()
-
-
-@cl.action_callback("browse_saved_flows")
-async def on_browse_saved_flows(action: cl.Action):
-    """Ask for directory path, list flow JSON files, show clickable list to load and open."""
-    res = await cl.AskUserMessage(
-        content="Enter the **absolute path** of the directory where your flow JSON files are saved:",
-        timeout=120,
-        raise_on_timeout=False,
-    ).send()
-    if not res or not res.get("output"):
-        await cl.Message(content="Cancelled or no path provided.").send()
-        return
-    dir_path = os.path.abspath((res["output"] or "").strip())
+@cl.action_callback("list_designer_flows")
+async def on_list_designer_flows(action: cl.Action):
+    """List all flow JSON files in the NODE_RED_FLOW_PATH directory (or NODE_RED_FLOW_FOLDER)."""
+    dir_path = _get_flow_directory()
     if not os.path.isdir(dir_path):
-        await cl.Message(content=f"Not a directory or not found: `{dir_path}`").send()
-        return
+        os.makedirs(dir_path, exist_ok=True)
     try:
         all_files = os.listdir(dir_path)
         json_files = sorted([f for f in all_files if f.lower().endswith(FLOW_EXT)])
@@ -381,25 +504,25 @@ async def on_browse_saved_flows(action: cl.Action):
     if not json_files:
         await cl.Message(content=f"No `.json` files found in `{dir_path}`").send()
         return
-    # One action per file: click to load that file into Node-RED and open editor
+    # One action per file: click to load that file into Flow and open editor
     file_actions = [
         cl.Action(
             name="load_flow_from_path",
             label=f"Load: {f}",
             payload={"path": os.path.join(dir_path, f)},
-            tooltip=f"Load {f} into Node-RED and open editor",
+            tooltip=f"Load {f} into Flow and open editor",
         )
         for f in json_files
     ]
     await cl.Message(
-        content=f"**Flows in `{dir_path}`** — click a flow to load it into Node-RED and open the editor (then you can work on it and update it):",
+        content=f"**Flows in `{dir_path}`** — click a flow to load it into Flow and open:",
         actions=file_actions,
     ).send()
 
 
 @cl.action_callback("load_flow_from_path")
 async def on_load_flow_from_path(action: cl.Action):
-    """Load flow from path (payload) into Node-RED and send open link."""
+    """Load flow from path (payload) into Flow and send open link."""
     path = (action.payload or {}).get("path") if isinstance(action.payload, dict) else None
     if not path or not os.path.isfile(path):
         await cl.Message(content="Invalid or missing file path.").send()
@@ -409,55 +532,52 @@ async def on_load_flow_from_path(action: cl.Action):
         if not flows:
             await cl.Message(content=f"File is empty or not a valid flow JSON: `{path}`").send()
             return
-        await _load_flows_into_nodered_then_send(flows, f"`{path}`")
+        await _load_flows_then_send(flows, f"`{path}`", save_path=path)
     except httpx.ConnectError:
         await cl.Message(
-            content=f"Cannot reach Node-RED at `{NODE_RED_URL}`. Is it running?"
+            content=f"**Connection error** — Cannot reach Node-RED. Ensure it's running at `{NODE_RED_URL}`."
         ).send()
     except httpx.HTTPStatusError as e:
         await cl.Message(
-            content=f"Node-RED API error: {e.response.status_code}. Enable Admin API or check auth."
+            content=f"**API error** ({e.response.status_code}) — Enable the Node-RED Admin API in settings."
         ).send()
     except Exception as e:
-        await cl.Message(content=f"Load failed: {e!s}").send()
+        await cl.Message(content=f"**Load failed** — {e!s}").send()
 
 
 @cl.action_callback("load_flow_upload")
 async def on_load_flow_upload(action: cl.Action):
-    """Ask user to upload a flow JSON file, then load into Node-RED and send open link."""
-    files = await cl.AskFileMessage(
-        content="Upload a **flow JSON file** to load into Node-RED (then you can open the editor and work on it):",
-        accept={"application/json": [FLOW_EXT], "text/plain": [FLOW_EXT]},
-        max_files=1,
-        timeout=120,
-        raise_on_timeout=False,
+    """Request file via chat attachment. User attaches file or types cancel."""
+    cl.user_session.set(PENDING_LOAD_FLOW_KEY, True)
+    await cl.Message(
+        content="**Load Flow** — Attach a flow JSON file to your next message (use the paperclip icon), or type `cancel` to abort. The chat input is ready for you."
     ).send()
-    if not files:
-        await cl.Message(content="Upload cancelled or no file received.").send()
-        return
-    f = files[0]
-    path = getattr(f, "path", None)
-    if not path or not os.path.isfile(path):
-        await cl.Message(content="Could not read uploaded file.").send()
+
+
+@cl.action_callback("update_flow")
+async def on_update_flow(action: cl.Action):
+    """Save current flows back to the last loaded flow file."""
+    path = cl.user_session.get("last_loaded_flow_path")
+    if not path:
+        await cl.Message(
+            content="No flow loaded yet. Load a flow (from List Flows or Load Flow) first, then use Update Flow to save your changes back."
+        ).send()
         return
     try:
-        flows = _read_flows_from_path(path)
-        if not flows:
-            await cl.Message(content="File is empty or not a valid flow JSON.").send()
-            return
-        await _load_flows_into_nodered_then_send(
-            flows, f"uploaded file `{getattr(f, 'name', 'file')}`"
-        )
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            flows = await _get_flows(client)
+        _write_flow_file(flows, path)
+        await cl.Message(content=f"Flow updated at `{path}`.").send()
     except httpx.ConnectError:
         await cl.Message(
-            content=f"Cannot reach Node-RED at `{NODE_RED_URL}`. Is it running?"
+            content=f"**Connection error** — Cannot reach Node-RED. Ensure it's running at `{NODE_RED_URL}`."
         ).send()
     except httpx.HTTPStatusError as e:
         await cl.Message(
-            content=f"Node-RED API error: {e.response.status_code}. Enable Admin API or check auth."
+            content=f"**API error** ({e.response.status_code}) — Enable the Node-RED Admin API in settings."
         ).send()
     except Exception as e:
-        await cl.Message(content=f"Load failed: {e!s}").send()
+        await cl.Message(content=f"**Update failed** — {e!s}").send()
 
 
 @cl.on_stop

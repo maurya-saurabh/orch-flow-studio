@@ -1,0 +1,64 @@
+<style>
+/* Dotted border for designer nodes - labelStyle adds designer-node-dotted to label, target parent node */
+.red-ui-flow-node:has(.designer-node-dotted),
+.red-ui-palette-node:has(.designer-node-dotted) {
+    border: 2px dotted #a6bbcf !important;
+}
+</style>
+
+<script type="text/html" data-template-name="designer_node_new">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-config"><i class="fa fa-cog"></i> Config (JSON object)</label>
+        <input type="text" id="node-input-config" placeholder='{"key": "value"}'>
+    </div>
+    <div class="form-row">
+        <label for="node-input-outputs"><i class="fa fa-random"></i> Outputs</label>
+        <input type="number" id="node-input-outputs" value="1" min="1" max="128" style="width: 80px;">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="designer_node_new">
+    <p>Designer node (new) - takes <b>config</b> object and <b>name</b>.</p>
+    <p>Config is a JSON object. Configure the number of outputs dynamically.</p>
+</script>
+
+<script type="text/javascript">
+(function() {
+    RED.nodes.registerType("designer_node_new", {
+        category: "designer",
+        color: "#a6bbcf",
+        defaults: {
+            name: { value: "" },
+            config: { value: "{}" },
+            outputs: { value: 1 }
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "font-awesome/fa-plus-square-o",
+        paletteLabel: "designer_node_new",
+        label: function () {
+            return this.name || "designer_node_new";
+        },
+        labelStyle: "designer-node-dotted",
+        oneditprepare: function () {
+            $("#node-input-config").val(typeof this.config === "string" ? this.config : JSON.stringify(this.config || {}, null, 2));
+            $("#node-input-outputs").val(this.outputs || 1);
+        },
+        oneditsave: function () {
+            var configStr = $("#node-input-config").val() || "{}";
+            try {
+                this.config = JSON.parse(configStr);
+            } catch (e) {
+                this.config = {};
+            }
+            var outputs = parseInt($("#node-input-outputs").val(), 10);
+            outputs = isNaN(outputs) ? 1 : Math.max(1, Math.min(128, outputs));
+            this.outputs = outputs;
+        }
+    });
+})();
+</script>

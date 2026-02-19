@@ -1,0 +1,14 @@
+{
+  "name": "node-red-contrib-designer-nodes",
+  "version": "0.1.0",
+  "description": "Designer nodes for Orch Flow Studio with dynamic outputs and dotted border",
+  "main": "designer_node_existing.js",
+  "keywords": ["node-red", "designer"],
+  "node-red": {
+    "version": ">=2.0.0",
+    "nodes": {
+      "designer_node_existing": "designer_node_existing.js",
+      "designer_node_new": "designer_node_new.js"
+    }
+  }
+}

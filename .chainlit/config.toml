@@ -15,9 +15,8 @@ cache = false
 # Set to true to store user env vars in DB, false to exclude them for security
 persist_user_env = false
 
-# Whether to mask user environment variables (API keys) in the UI with password type
-# Set to true to show API keys as ***, false to show them as plain text
-mask_user_env = false
+# Mask API keys and secrets in the UI (production best practice)
+mask_user_env = true
 
 # Authorized origins
 allow_origins = ["*"]
@@ -91,18 +90,21 @@ reaction_on_message_received = false
     allowed_executables = [ "npx", "uvx" ]
 
 [UI]
-# Name of the assistant.
-name = "Assistant"
+# Name of the assistant (displayed in navbar).
+name = "OrchFlow Studio"
 
-# default_theme = "dark"
+# Default theme: "light" or "dark" (user can switch via theme toggle)
+default_theme = "dark"
+
+# Wide layout for flow editing context
+layout = "wide"
+
+# Sidebar open by default for thread history access
+default_sidebar_state = "open"
 
 # Force a specific language for all users (e.g., "en-US", "he-IL", "fr-FR")
 # If not set, the browser's language will be used
 # language = "en-US"
-
-# layout = "wide"
-
-# default_sidebar_state = "open"
 
 # Chat settings display location: "message_composer" (default) or "sidebar" (header)
 # chat_settings_location = "message_composer"
@@ -113,15 +115,14 @@ name = "Assistant"
 # Whether to prompt user confirmation on clicking 'New Chat'
 confirm_new_chat = true
 
-# Description of the assistant. This is used for HTML tags.
-# description = ""
+# Description for meta tags and SEO
+description = "OrchFlow Studio — AI-powered flow orchestration and Node-RED flow management. Design, edit, and manage flows with natural language."
 
 # Chain of Thought (CoT) display mode. Can be "hidden", "tool_call" or "full".
 cot = "full"
 
-# Specify a CSS file that can be used to customize the user interface.
-# The CSS file can be served from the public directory or via an external link.
-# custom_css = "/public/test.css"
+# Production-grade custom styles
+custom_css = "/public/style.css"
 
 # Specify additional attributes for a custom CSS file
 # custom_css_attributes = "media=\"print\""
@@ -130,8 +131,8 @@ cot = "full"
 # The JavaScript file can be served from the public directory.
 # custom_js = "/public/test.js"
 
-# The style of alert boxes. Can be "classic" or "modern".
-alert_style = "classic"
+# Modern alert style for production polish
+alert_style = "modern"
 
 # Specify additional attributes for custom JS file
 # custom_js_attributes = "async type = \"module\""
