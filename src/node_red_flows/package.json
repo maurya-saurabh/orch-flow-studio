@@ -4,6 +4,7 @@
   "version": "0.0.1",
   "private": true,
   "dependencies": {
-    "node-red-contrib-designer-nodes": "file:./nodes/designer-nodes"
+    "node-red-contrib-designer-nodes": "file:./nodes/designer-nodes",
+    "node-red-contrib-theme-flow-loading": "file:./theme-flow-loading"
   }
 }

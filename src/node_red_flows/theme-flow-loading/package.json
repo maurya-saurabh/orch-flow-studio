@@ -1,0 +1,11 @@
+{
+  "name": "node-red-contrib-theme-flow-loading",
+  "version": "0.1.0",
+  "description": "Loading overlay for Node-RED editor until flow is fully loaded",
+  "keywords": ["node-red", "theme", "loading"],
+  "node-red": {
+    "plugins": {
+      "orch-flow-loading-theme": "theme.js"
+    }
+  }
+}

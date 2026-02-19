@@ -22,6 +22,11 @@ from autobots_orch_flow_studio.common.utils.formatting import format_structured_
 from autobots_orch_flow_studio.domains.orch_flow_studio.settings import (
     init_orch_flow_studio_settings,
 )
+from autobots_orch_flow_studio.domains.orch_flow_studio.flow_conversion import (
+    convert_unknown_nodes_to_designer,
+    ensure_flow_order,
+    flow_needs_conversion,
+)
 from autobots_orch_flow_studio.domains.orch_flow_studio.tools import register_orch_flow_studio_tools
 
 if TYPE_CHECKING:
@@ -75,6 +80,21 @@ def _get_flow_directory() -> str:
     return os.path.dirname(NODE_RED_FLOW_PATH)
 
 
+# Reusable HTTP client for Node-RED API (connection pooling for faster loads)
+_node_red_client: httpx.AsyncClient | None = None
+
+
+def _get_node_red_client() -> httpx.AsyncClient:
+    """Get or create shared httpx client for Node-RED API calls."""
+    global _node_red_client
+    if _node_red_client is None:
+        _node_red_client = httpx.AsyncClient(
+            timeout=120.0,  # Large flows can take time to deploy
+            limits=httpx.Limits(max_keepalive_connections=2, max_connections=10),
+        )
+    return _node_red_client
+
+
 def _flows_headers():
     return {"Node-RED-API-Version": "v1", "Content-Type": "application/json"}
 
@@ -125,15 +145,15 @@ def _write_flow_file(flows, path: str):
 
 def _open_flows_message():
     return (
-        f"**Open in new tab:** [Open Flows]({NODE_RED_URL}) — "
-        "right-click → Open link in new tab, or Ctrl/Cmd+Click."
+        f"[**Open Node-RED**]({NODE_RED_URL}) — "
+        "click to view your flow (right-click → Open in new tab)"
     )
 
 
 async def _load_flows_then_send(flows, source_label: str, save_path: str | None = None):
-    """POST flows to Flow and send success message with open link. Optionally store path for Update Flow."""
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        await _post_flows(client, flows)
+    """POST flows to Node-RED and send success message with open link. Optionally store path for Update Flow."""
+    client = _get_node_red_client()
+    await _post_flows(client, flows)
     if save_path:
         cl.user_session.set("last_loaded_flow_path", save_path)
     else:
@@ -208,6 +228,7 @@ def _flow_tool_actions_row2():
 FLOW_COMMAND_ID = "flow_tools"
 PENDING_SAVE_FLOW_KEY = "pending_save_flow"
 PENDING_LOAD_FLOW_KEY = "pending_load_flow"
+LOAD_FLOW_IN_PROGRESS_KEY = "load_flow_in_progress"
 
 
 # Check if OAuth is configured
@@ -329,14 +350,9 @@ I help you design, edit, and manage Node-RED flows using natural language. You c
 async def on_message(message: cl.Message):
     """Handle incoming messages from the user."""
     set_conversation_id(cl.context.session.thread_id)
-    if getattr(message, "command", None) == FLOW_COMMAND_ID:
-        await cl.Message(
-            content="**Flow tools** — choose one:",
-            actions=_flow_tool_actions_choice(),
-        ).send()
-        return
 
-    # Handle pending Load Flow: user attaches file to message or types cancel
+    # Handle pending Load Flow first — user attaches file or types cancel
+    # (must run before FLOW_COMMAND_ID so file upload isn't intercepted)
     if cl.user_session.get(PENDING_LOAD_FLOW_KEY):
         cl.user_session.set(PENDING_LOAD_FLOW_KEY, False)
         elements = getattr(message, "elements", []) or []
@@ -356,25 +372,42 @@ async def on_message(message: cl.Message):
             await cl.Message(content="Could not read attached file.").send()
             return
         try:
+            await cl.Message(content="Reading flow file…").send()
             flows = _read_flows_from_path(path)
             if not flows:
                 await cl.Message(content="File is empty or not a valid flow JSON.").send()
                 return
+            await cl.Message(content="Converting custom nodes to placeholders…").send()
+            flows = convert_unknown_nodes_to_designer(flows)
             upload_name = getattr(el, "name", "uploaded_flow.json")
             if not (upload_name or "").lower().endswith(FLOW_EXT):
                 upload_name = f"{upload_name or 'uploaded_flow'}{FLOW_EXT}"
-            save_path = os.path.join(_get_flow_directory(), upload_name)
-            await _load_flows_then_send(flows, f"uploaded file `{upload_name}`", save_path=save_path)
+            flow_dir = _get_flow_directory()
+            os.makedirs(flow_dir, exist_ok=True)
+            save_path = os.path.join(flow_dir, upload_name)
+            _write_flow_file(flows, save_path)
+            await cl.Message(content="Loading flow into Node-RED…").send()
+            await _load_flows_then_send(flows, f"`{upload_name}`", save_path=save_path)
         except httpx.ConnectError:
             await cl.Message(
-                content=f"**Connection error** — Cannot reach Node-RED at `{NODE_RED_URL}`. Ensure Node-RED is running and `NODE_RED_URL` is correct."
+                content=f"**Connection error** — Cannot reach Node-RED at `{NODE_RED_URL}`. "
+                f"Flow saved as `{upload_name}`. Use **List Flows** → **Load** when Node-RED is running."
             ).send()
         except httpx.HTTPStatusError as e:
             await cl.Message(
-                content=f"**API error** ({e.response.status_code}) — Node-RED Admin API may be disabled. Enable it in Node-RED settings."
+                content=f"**API error** ({e.response.status_code}) — Node-RED Admin API may be disabled. "
+                f"Flow saved as `{upload_name}`. Use **List Flows** → **Load** when Node-RED is ready."
             ).send()
         except Exception as e:
-            await cl.Message(content=f"**Load failed** — {e!s}").send()
+            await cl.Message(content=f"**Conversion failed** — {e!s}").send()
+        return
+
+    # Flow tools command: show choice when user clicks workflow icon
+    if getattr(message, "command", None) == FLOW_COMMAND_ID:
+        await cl.Message(
+            content="**Flow tools** — choose one:",
+            actions=_flow_tool_actions_choice(),
+        ).send()
         return
 
     # Handle pending Save Flow: user typed flow name in chat (handoff to UI)
@@ -390,8 +423,8 @@ async def on_message(message: cl.Message):
         os.makedirs(flow_dir, exist_ok=True)
         path = os.path.join(flow_dir, flow_name)
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                flows = await _get_flows(client)
+            client = _get_node_red_client()
+            flows = await _get_flows(client)
             _write_flow_file(flows, path)
             await cl.Message(content=f"Flow saved to `{path}`.").send()
         except httpx.ConnectError:
@@ -523,15 +556,28 @@ async def on_list_designer_flows(action: cl.Action):
 @cl.action_callback("load_flow_from_path")
 async def on_load_flow_from_path(action: cl.Action):
     """Load flow from path (payload) into Flow and send open link."""
+    if cl.user_session.get(LOAD_FLOW_IN_PROGRESS_KEY):
+        await cl.Message(content="Flow load already in progress. Please wait…").send()
+        return
     path = (action.payload or {}).get("path") if isinstance(action.payload, dict) else None
     if not path or not os.path.isfile(path):
         await cl.Message(content="Invalid or missing file path.").send()
         return
+    cl.user_session.set(LOAD_FLOW_IN_PROGRESS_KEY, True)
     try:
+        await cl.Message(content="Reading flow file…").send()
         flows = _read_flows_from_path(path)
         if not flows:
             await cl.Message(content=f"File is empty or not a valid flow JSON: `{path}`").send()
             return
+        if flow_needs_conversion(flows):
+            await cl.Message(content="Converting custom nodes to placeholders…").send()
+            flows = convert_unknown_nodes_to_designer(flows)
+        else:
+            ensure_flow_order(flows)
+        await cl.Message(
+            content="Loading flow into Node-RED… (this may take a moment for large flows)"
+        ).send()
         await _load_flows_then_send(flows, f"`{path}`", save_path=path)
     except httpx.ConnectError:
         await cl.Message(
@@ -543,6 +589,8 @@ async def on_load_flow_from_path(action: cl.Action):
         ).send()
     except Exception as e:
         await cl.Message(content=f"**Load failed** — {e!s}").send()
+    finally:
+        cl.user_session.set(LOAD_FLOW_IN_PROGRESS_KEY, False)
 
 
 @cl.action_callback("load_flow_upload")
@@ -564,8 +612,8 @@ async def on_update_flow(action: cl.Action):
         ).send()
         return
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            flows = await _get_flows(client)
+        client = _get_node_red_client()
+        flows = await _get_flows(client)
         _write_flow_file(flows, path)
         await cl.Message(content=f"Flow updated at `{path}`.").send()
     except httpx.ConnectError:
