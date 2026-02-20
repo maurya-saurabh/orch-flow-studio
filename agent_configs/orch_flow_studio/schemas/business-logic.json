@@ -1,0 +1,67 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://example.com/schemas/business-logic.json",
+    "title": "Business Logic Schema",
+    "description": "Schema for capturing business logic details of an entity in the knowledge graph. Could be processing-units, flows, etc. Allows for capturing system generated and human-curated business logic information.",
+    "type": "object",
+    "required": [
+        "nodeKgId",
+        "nodeName",
+        "category",
+        "functionName",
+        "sourceFile",
+        "businessLogic",
+        "parameters",
+        "inputs",
+        "referenced",
+        "output",
+        "errorConstants"
+    ],
+    "properties": {
+        "businssLogicId": {
+            "type": "string",
+            "pattern": "TODO",
+            "description": "Unique knowledge graph identifier for the businss logic. Follows the format <repositoryName>::<nodeName>",
+            "examples": [
+                "oepy-payments::map-iso-to-rjct-po",
+                "oepy-schm-cofig::fetch-orig-payment-details",
+                "oepy-payments::validate-payment-data"
+            ],
+            "x-derivation-logic": [
+                "Format: <repositoryName>::<nodeName>",
+                "Use kebab-case naming convention",
+                "Must be unique within the component library"
+            ]
+        },
+        "llmDerivedBusinessLogic": {
+            "type": "array",
+            "description": "Array of business logic statements derived from LLM analysis of the source code. These statements capture the inferred business logic based on the code structure, comments, and naming conventions.",
+            "items": {
+                "type": "string",
+                "description": "A single business logic statement derived from LLM analysis.",
+                "examples": [
+                    "This function maps ISO payment data to RJCT-PO format.",
+                    "This processing unit validates payment data against predefined rules.",
+                    "This flow fetches original payment details from the database."
+                ]
+            }
+        },
+        "curatedBusinessLogic": {
+            "type": "array",
+            "description": "Array of business logic statements curated by human experts. These statements may refine, correct, or expand upon the LLM-derived business logic to ensure accuracy and completeness.",
+            "items": {
+                "type": "string",
+                "description": "A single business logic statement derived with human curation.",
+                "examples": [
+                    "This function maps ISO payment data to RJCT-PO format.",
+                    "This processing unit validates payment data against predefined rules.",
+                    "This flow fetches original payment details from the database."
+                ]
+            }
+        },
+        "metadata": {
+            "$ref": "metadata-schema-spec.json#",
+            "description": "Metadata about the knowledge graph generation"
+        }
+    }
+}

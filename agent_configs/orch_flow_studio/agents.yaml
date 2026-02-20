@@ -2,33 +2,104 @@
 # ABOUTME: Defines 3 agents: welcome, joke, and weather agents
 
 agents:
-  welcome_agent:
-    prompt: "00-welcome"
-    batch_enabled: false
-    is_default: true
-    tools:
-      - "handoff"
-      - "get_agent_list"
 
-  joke_agent:
-    prompt: "01-joke"
-    output_schema: "joke-output.json"
+  # node_kg_extraction:
+  #   prompt: "node_kg_extraction"
+  #   output_schema: "node-kg-schema-spec.json"
+  #   tools:
+  #     - "read_lpu_source_tool"
+  #     - "write_lpu_kg_output_tool"
+  #     - "output_format_converter_tool"
+  #   batch_enabled: true
+  #   max_concurrency: 2
+
+  processing_unit_oas_generator:
+    prompt: "processing_unit_oas_generator"
+    tools:
+      - get_context
+      - read_file_tool
+      - write_file_tool
+      - list_files_tool
+    batch_enabled: false
+
+  processing_unit_code_generator:
+    prompt: "processing_unit_oas_generator"
+    output_schema: "node-kg-schema-spec.json"
+    tools:
+      - get_context
+      - read_file_tool
+      - write_file_tool
+      - list_files_tool
     batch_enabled: true
-    tools:
-      - "tell_joke"
-      - "get_joke_categories"
-      - "handoff"
-      - "get_agent_list"
-      - "output_format_converter_tool"
 
-  weather_agent:
-    prompt: "02-weather"
-    output_schema: "weather-output.json"
-    batch_enabled: false
+  flow_oas_generator:
+    prompt: "flow_oas_generator"
     tools:
-      - "get_weather"
-      - "get_forecast"
-      - "handoff"
-      - "get_agent_list"
-      - "read_file_tool"
-      - "list_files_tool"
+      - get_context
+      - read_file_tool
+      - write_file_tool
+      - list_files_tool
+    batch_enabled: true 
+
+  flow_code_generator:
+    prompt: "flow_code_generator"
+    tools:
+      - get_context
+      - read_file_tool
+      - write_file_tool
+      - list_files_tool
+    batch_enabled: true
+
+  model_oas_generator:
+    prompt: "flow_code_generator"
+    tools:
+      - get_context
+      - read_file_tool
+      - write_file_tool
+      - list_files_tool
+    batch_enabled: true
+
+  model_code_generator:
+    prompt: "model_code_generator"
+    tools:
+      - get_context
+      - read_file_tool
+      - write_file_tool
+      - list_files_tool
+    batch_enabled: true
+
+  sync_oas_generator:
+    prompt: "sync_oas_generator"
+    tools:
+      - get_context
+      - read_file_tool
+      - write_file_tool
+      - list_files_tool
+    batch_enabled: true
+  
+  sync_code_generator:
+    prompt: "sync_code_generator"
+    tools:
+      - get_context
+      - read_file_tool
+      - write_file_tool
+      - list_files_tool
+    batch_enabled: true
+
+  async_oas_generator:
+    prompt: "async_oas_generator"
+    tools:
+      - get_context
+      - read_file_tool
+      - write_file_tool
+      - list_files_tool
+    batch_enabled: true
+
+  async_code_generator:
+    prompt: "async_code_generator"
+    tools:
+      - get_context
+      - read_file_tool
+      - write_file_tool
+      - list_files_tool
+    batch_enabled: true

@@ -1,27 +1,17 @@
 # ABOUTME: Orch Flow Studio-specific Chainlit entry point for the orch_flow_studio_chat use case.
-# ABOUTME: Wires tracing, OAuth, and the shared streaming helper.
+# ABOUTME: Wires OAuth and the shared flow tools.
 
 import json
+import logging
 import os
-from typing import TYPE_CHECKING, Any
+from pathlib import Path
 
 import chainlit as cl
 import httpx
-from autobots_devtools_shared_lib.common.observability import (
-    TraceMetadata,
-    flush_tracing,
-    get_logger,
-    init_tracing,
-    set_conversation_id,
-)
 from autobots_devtools_shared_lib.dynagent import create_base_agent
-from autobots_devtools_shared_lib.dynagent.ui import stream_agent_events
 from dotenv import load_dotenv
+from langchain_core.runnables import RunnableConfig
 
-from autobots_orch_flow_studio.common.utils.formatting import format_structured_output
-from autobots_orch_flow_studio.domains.orch_flow_studio.settings import (
-    init_orch_flow_studio_settings,
-)
 from autobots_orch_flow_studio.domains.orch_flow_studio.flow_conversion import (
     convert_unknown_nodes_to_designer,
     ensure_flow_order,
@@ -29,22 +19,22 @@ from autobots_orch_flow_studio.domains.orch_flow_studio.flow_conversion import (
 )
 from autobots_orch_flow_studio.domains.orch_flow_studio.tools import register_orch_flow_studio_tools
 
-if TYPE_CHECKING:
-    from langchain_core.runnables import RunnableConfig
-
 # Load environment variables from .env file
 load_dotenv()
 
-logger = get_logger(__file__)
+logger = logging.getLogger(__name__)
 
-# Application name for tracing and identification
-APP_NAME = "orch_flow_studio_chat"
+# Ensure agent config is set when not provided (e.g. run from IDE)
+if not os.environ.get("DYNAGENT_CONFIG_ROOT_DIR"):
+    _config_dir = Path(__file__).resolve().parents[4] / "agent_configs" / "orch_flow_studio"
+    if _config_dir.is_dir():
+        os.environ["DYNAGENT_CONFIG_ROOT_DIR"] = str(_config_dir)
 
-# Register Orch Flow Studio settings so shared-lib (dynagent) uses the same instance.
-init_orch_flow_studio_settings()
-
-# Registration must precede AgentMeta.instance() (called inside create_base_agent).
 register_orch_flow_studio_tools()
+_agent = create_base_agent()
+
+# Application name for identification
+APP_NAME = "orch_flow_studio_chat"
 
 NODE_RED_URL = os.environ.get("NODE_RED_URL", "http://localhost:1880").rstrip("/")
 FLOWS_API_URL = f"{NODE_RED_URL}/flows"
@@ -52,19 +42,18 @@ FLOW_EXT = ".json"
 
 # Folder for flow JSON files (save, load, list all use this folder when set)
 # Set NODE_RED_FLOW_FOLDER to a directory path; flows save there, browse lists it, load uses it.
-_flow_folder = os.environ.get("NODE_RED_FLOW_FOLDER", "").strip()
-if _flow_folder:
-    _flow_folder = os.path.abspath(_flow_folder)
+_flow_folder_raw = os.environ.get("NODE_RED_FLOW_FOLDER", "").strip()
+_flow_folder: str | None = str(Path(_flow_folder_raw).resolve()) if _flow_folder_raw else None
 
 # Default flow file path: NODE_RED_FLOW_PATH env, or {NODE_RED_FLOW_FOLDER}/saved_flows.json, or built-in default
 NODE_RED_FLOW_PATH: str
 if os.environ.get("NODE_RED_FLOW_PATH", "").strip():
-    NODE_RED_FLOW_PATH = os.path.abspath(os.environ.get("NODE_RED_FLOW_PATH", "").strip())
+    NODE_RED_FLOW_PATH = str(Path(os.environ.get("NODE_RED_FLOW_PATH", "").strip()).resolve())
 elif _flow_folder:
-    NODE_RED_FLOW_PATH = os.path.join(_flow_folder, "saved_flows.json")
+    NODE_RED_FLOW_PATH = str(Path(_flow_folder) / "saved_flows.json")
 else:
-    NODE_RED_FLOW_PATH = os.path.join(
-        os.path.dirname(os.path.dirname(__file__)), "node_red_flows", "saved_flows.json"
+    NODE_RED_FLOW_PATH = str(
+        Path(__file__).resolve().parent.parent / "node_red_flows" / "saved_flows.json"
     )
 
 
@@ -76,8 +65,8 @@ def _get_flow_folder() -> str | None:
 def _get_flow_directory() -> str:
     """Return the directory containing flow JSON files (NODE_RED_FLOW_FOLDER or dirname of NODE_RED_FLOW_PATH)."""
     if _flow_folder:
-        return os.path.abspath(_flow_folder)
-    return os.path.dirname(NODE_RED_FLOW_PATH)
+        return str(Path(_flow_folder).resolve())
+    return str(Path(NODE_RED_FLOW_PATH).resolve().parent)
 
 
 # Reusable HTTP client for Node-RED API (connection pooling for faster loads)
@@ -114,17 +103,17 @@ async def _post_flows(client: httpx.AsyncClient, flows):
 
 
 def _flow_file_exists():
-    return os.path.isfile(NODE_RED_FLOW_PATH)
+    return Path(NODE_RED_FLOW_PATH).is_file()
 
 
 def _read_flow_file():
-    with open(NODE_RED_FLOW_PATH, "r", encoding="utf-8") as f:
+    with Path(NODE_RED_FLOW_PATH).open(encoding="utf-8") as f:
         return json.load(f)
 
 
 def _read_flows_from_path(path: str):
     """Read flow JSON from a path; return list of flow nodes (handles array or {flows: []})."""
-    with open(path, "r", encoding="utf-8") as f:
+    with Path(path).open(encoding="utf-8") as f:
         data = json.load(f)
     if isinstance(data, list):
         return data
@@ -135,11 +124,10 @@ def _read_flows_from_path(path: str):
 
 def _write_flow_file(flows, path: str):
     """Write flows JSON to the given absolute path."""
-    path = os.path.abspath(path.strip())
-    d = os.path.dirname(path)
-    if d:
-        os.makedirs(d, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
+    p = Path(path.strip()).resolve()
+    if p.parent:
+        p.parent.mkdir(parents=True, exist_ok=True)
+    with p.open("w", encoding="utf-8") as f:
         json.dump(flows, f, indent=2)
 
 
@@ -268,7 +256,6 @@ if OAUTH_ENABLED:
         return default_user
 else:
     # No OAuth - anonymous access
-    logger.info("OAuth is not configured - anonymous access")
     pass
 
 
@@ -295,7 +282,7 @@ async def set_starters(
 
 
 def _get_user_identifier() -> str:
-    """User ID for tracing and state; defaults to anonymous when OAuth is off."""
+    """User ID for session; defaults to anonymous when OAuth is off."""
     user = cl.user_session.get("user")
     if user:
         return user.identifier[:200]
@@ -304,24 +291,9 @@ def _get_user_identifier() -> str:
 
 @cl.on_chat_start
 async def start():
-    """Initialize the chat session with the welcome agent."""
-    # Create agent instance once and store it in session
-    init_tracing()
-    base_agent = create_base_agent()
-    cl.user_session.set("base_agent", base_agent)
-
-    # Prepare trace metadata for Langfuse observability (session-level)
+    """Initialize the chat session with the welcome message."""
     user_id = _get_user_identifier()
     cl.user_session.set("user_id", user_id)
-
-    trace_metadata = TraceMetadata.create(
-        session_id=cl.context.session.thread_id,
-        app_name=APP_NAME,
-        user_id=user_id,
-        tags=[APP_NAME],
-    )
-    set_conversation_id(cl.context.session.thread_id)
-    cl.user_session.set("trace_metadata", trace_metadata)
 
     welcome = """**Welcome to OrchFlow Studio**
 
@@ -348,138 +320,19 @@ I help you design, edit, and manage Node-RED flows using natural language. You c
 
 @cl.on_message
 async def on_message(message: cl.Message):
-    """Handle incoming messages from the user."""
-    set_conversation_id(cl.context.session.thread_id)
-
-    # Handle pending Load Flow first — user attaches file or types cancel
-    # (must run before FLOW_COMMAND_ID so file upload isn't intercepted)
-    if cl.user_session.get(PENDING_LOAD_FLOW_KEY):
-        cl.user_session.set(PENDING_LOAD_FLOW_KEY, False)
-        elements = getattr(message, "elements", []) or []
-        file_elements = [el for el in elements if getattr(el, "path", None)]
-        if not file_elements and (message.content or "").strip().lower() == "cancel":
-            await cl.Message(content="Load cancelled.").send()
-            return
-        if not file_elements:
-            await cl.Message(
-                content="No file attached. Please attach a flow `.json` file to your message (use the paperclip icon), or type `cancel` to abort."
-            ).send()
-            cl.user_session.set(PENDING_LOAD_FLOW_KEY, True)
-            return
-        el = file_elements[0]
-        path = getattr(el, "path", None)
-        if not path or not os.path.isfile(path):
-            await cl.Message(content="Could not read attached file.").send()
-            return
-        try:
-            await cl.Message(content="Reading flow file…").send()
-            flows = _read_flows_from_path(path)
-            if not flows:
-                await cl.Message(content="File is empty or not a valid flow JSON.").send()
-                return
-            await cl.Message(content="Converting custom nodes to placeholders…").send()
-            flows = convert_unknown_nodes_to_designer(flows)
-            upload_name = getattr(el, "name", "uploaded_flow.json")
-            if not (upload_name or "").lower().endswith(FLOW_EXT):
-                upload_name = f"{upload_name or 'uploaded_flow'}{FLOW_EXT}"
-            flow_dir = _get_flow_directory()
-            os.makedirs(flow_dir, exist_ok=True)
-            save_path = os.path.join(flow_dir, upload_name)
-            _write_flow_file(flows, save_path)
-            await cl.Message(content="Loading flow into Node-RED…").send()
-            await _load_flows_then_send(flows, f"`{upload_name}`", save_path=save_path)
-        except httpx.ConnectError:
-            await cl.Message(
-                content=f"**Connection error** — Cannot reach Node-RED at `{NODE_RED_URL}`. "
-                f"Flow saved as `{upload_name}`. Use **List Flows** → **Load** when Node-RED is running."
-            ).send()
-        except httpx.HTTPStatusError as e:
-            await cl.Message(
-                content=f"**API error** ({e.response.status_code}) — Node-RED Admin API may be disabled. "
-                f"Flow saved as `{upload_name}`. Use **List Flows** → **Load** when Node-RED is ready."
-            ).send()
-        except Exception as e:
-            await cl.Message(content=f"**Conversion failed** — {e!s}").send()
-        return
-
-    # Flow tools command: show choice when user clicks workflow icon
-    if getattr(message, "command", None) == FLOW_COMMAND_ID:
-        await cl.Message(
-            content="**Flow tools** — choose one:",
-            actions=_flow_tool_actions_choice(),
-        ).send()
-        return
-
-    # Handle pending Save Flow: user typed flow name in chat (handoff to UI)
-    if cl.user_session.get(PENDING_SAVE_FLOW_KEY):
-        cl.user_session.set(PENDING_SAVE_FLOW_KEY, False)
-        flow_name = (message.content or "").strip()
-        if not flow_name or flow_name.lower() == "cancel":
-            await cl.Message(content="Save cancelled.").send()
-            return
-        if not flow_name.lower().endswith(FLOW_EXT):
-            flow_name = f"{flow_name}{FLOW_EXT}"
-        flow_dir = _get_flow_directory()
-        os.makedirs(flow_dir, exist_ok=True)
-        path = os.path.join(flow_dir, flow_name)
-        try:
-            client = _get_node_red_client()
-            flows = await _get_flows(client)
-            _write_flow_file(flows, path)
-            await cl.Message(content=f"Flow saved to `{path}`.").send()
-        except httpx.ConnectError:
-            await cl.Message(
-                content=f"**Connection error** — Cannot reach Node-RED. Ensure it's running at `{NODE_RED_URL}`."
-            ).send()
-        except httpx.HTTPStatusError as e:
-            await cl.Message(
-                content=f"**API error** ({e.response.status_code}) — Enable the Node-RED Admin API in settings."
-            ).send()
-        except Exception as e:
-            await cl.Message(content=f"**Save failed** — {e!s}").send()
-        return
-
-    config: RunnableConfig = {
-        "configurable": {
-            "thread_id": cl.context.session.thread_id,
-        },
-        "recursion_limit": 50,
-        "run_name": APP_NAME,  # Set trace name for Langfuse
-    }
-
-    # Reuse the same agent instance from session
-    base_agent = cl.user_session.get("base_agent")
-    if not base_agent:
-        await cl.Message(
-            content="**Session error** — Something went wrong during initialization. Please refresh the page and try again."
-        ).send()
-        return
-
-    user_id = cl.user_session.get("user_id")
-
-    input_state: dict[str, Any] = {
-        "messages": [{"role": "user", "content": message.content}],
-        "user_id": user_id,
-        "app_name": APP_NAME,
-        "session_id": cl.context.session.thread_id,
-    }
-
-    # Retrieve trace metadata from session
-    trace_metadata = cl.user_session.get("trace_metadata")
-
-    result = await stream_agent_events(
-        agent=base_agent,
-        input_state=input_state,
-        config=config,
-        on_structured_output=format_structured_output,
-        enable_tracing=True,
-        trace_metadata=trace_metadata,
+    run_config = RunnableConfig(
+        configurable={"thread_id": cl.context.session.id},
+        callbacks=[],
     )
-    logger.debug(f"Agent execution completed with result: {result}")
+    res = await _agent.ainvoke(
+        {"messages": [{"role": "user", "content": message.content}]},
+        run_config,
+    )
+    await cl.Message(content=res["messages"][-1].text).send()
 
 
 @cl.action_callback("flow_working_on_new")
-async def on_flow_working_on_new(action: cl.Action):
+async def on_flow_working_on_new(_action: cl.Action):
     """Show Row 1: Open Flows, Save Flow."""
     await cl.Message(
         content="**Working on new** — choose an action:",
@@ -488,7 +341,7 @@ async def on_flow_working_on_new(action: cl.Action):
 
 
 @cl.action_callback("flow_working_on_existing")
-async def on_flow_working_on_existing(action: cl.Action):
+async def on_flow_working_on_existing(_action: cl.Action):
     """Show Row 2: List Flows, Load Flow, Update Flow."""
     await cl.Message(
         content="**Working on existing** — choose an action:",
@@ -497,7 +350,7 @@ async def on_flow_working_on_existing(action: cl.Action):
 
 
 @cl.action_callback("open_flows")
-async def on_open_flows(action: cl.Action):
+async def on_open_flows(_action: cl.Action):
     """Load temp/empty flow into Flow, then send open link."""
     try:
         await _load_flows_then_send([], "temp flow")
@@ -514,7 +367,7 @@ async def on_open_flows(action: cl.Action):
 
 
 @cl.action_callback("save_flow")
-async def on_save_flow(action: cl.Action):
+async def on_save_flow(_action: cl.Action):
     """Request flow name via chat to avoid blocking UI. User types name in chat."""
     cl.user_session.set(PENDING_SAVE_FLOW_KEY, True)
     await cl.Message(
@@ -523,14 +376,13 @@ async def on_save_flow(action: cl.Action):
 
 
 @cl.action_callback("list_designer_flows")
-async def on_list_designer_flows(action: cl.Action):
+async def on_list_designer_flows(_action: cl.Action):
     """List all flow JSON files in the NODE_RED_FLOW_PATH directory (or NODE_RED_FLOW_FOLDER)."""
-    dir_path = _get_flow_directory()
-    if not os.path.isdir(dir_path):
-        os.makedirs(dir_path, exist_ok=True)
+    dir_path = Path(_get_flow_directory())
+    if not dir_path.is_dir():
+        dir_path.mkdir(parents=True, exist_ok=True)
     try:
-        all_files = os.listdir(dir_path)
-        json_files = sorted([f for f in all_files if f.lower().endswith(FLOW_EXT)])
+        json_files = sorted(f.name for f in dir_path.iterdir() if f.suffix.lower() == FLOW_EXT)
     except OSError as e:
         await cl.Message(content=f"Cannot list directory: {e!s}").send()
         return
@@ -542,7 +394,7 @@ async def on_list_designer_flows(action: cl.Action):
         cl.Action(
             name="load_flow_from_path",
             label=f"Load: {f}",
-            payload={"path": os.path.join(dir_path, f)},
+            payload={"path": str(dir_path / f)},
             tooltip=f"Load {f} into Flow and open editor",
         )
         for f in json_files
@@ -560,7 +412,7 @@ async def on_load_flow_from_path(action: cl.Action):
         await cl.Message(content="Flow load already in progress. Please wait…").send()
         return
     path = (action.payload or {}).get("path") if isinstance(action.payload, dict) else None
-    if not path or not os.path.isfile(path):
+    if not path or not Path(path).is_file():
         await cl.Message(content="Invalid or missing file path.").send()
         return
     cl.user_session.set(LOAD_FLOW_IN_PROGRESS_KEY, True)
@@ -594,7 +446,7 @@ async def on_load_flow_from_path(action: cl.Action):
 
 
 @cl.action_callback("load_flow_upload")
-async def on_load_flow_upload(action: cl.Action):
+async def on_load_flow_upload(_action: cl.Action):
     """Request file via chat attachment. User attaches file or types cancel."""
     cl.user_session.set(PENDING_LOAD_FLOW_KEY, True)
     await cl.Message(
@@ -603,7 +455,7 @@ async def on_load_flow_upload(action: cl.Action):
 
 
 @cl.action_callback("update_flow")
-async def on_update_flow(action: cl.Action):
+async def on_update_flow(_action: cl.Action):
     """Save current flows back to the last loaded flow file."""
     path = cl.user_session.get("last_loaded_flow_path")
     if not path:
@@ -631,8 +483,7 @@ async def on_update_flow(action: cl.Action):
 @cl.on_stop
 def on_stop() -> None:
     """Handle chat stop."""
-    flush_tracing()
-    logger.info("Chat session stopped")
+    logger.debug("Chat session stopped")
 
 
 if __name__ == "__main__":

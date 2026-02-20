@@ -1,0 +1,617 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://example.com/schemas/common-specs.json",
+    "title": "Common Specifications",
+    "description": "Shared schema definitions used across Knowledge Base Extractor schemas",
+    "definitions": {
+        "modelReference": {
+            "type": "object",
+            "description": "Reference to a data model and the properties used or enriched by this node",
+            "required": [
+                "$modelRef"
+            ],
+            "properties": {
+                "$modelRef": {
+                    "type": "string",
+                    "description": "URI reference to the data model schema",
+                    "pattern": "^.+#.*$",
+                    "examples": [
+                        "masterdata/models/PaymentOrder.json#/components/schemas/PaymentOrder",
+                        "masterdata/models/OriginalPayment.json#/components/schemas/OriginalPayment"
+                    ]
+                },
+                "referencedProperties": {
+                    "type": "array",
+                    "description": "List of property names within the referenced model that are used by this node",
+                    "items": {
+                        "type": "string",
+                        "pattern": "^[a-zA-Z][a-zA-Z0-9]*$"
+                    },
+                    "minItems": 1,
+                    "examples": [
+                        [
+                            "isobankName",
+                            "dfltPaysysId",
+                            "backDtdRqAllwd"
+                        ]
+                    ]
+                },
+                "enrichedProperties": {
+                    "type": "array",
+                    "description": "List of property names within the referenced model that are enriched by this node",
+                    "items": {
+                        "type": "string",
+                        "pattern": "^[a-zA-Z][a-zA-Z0-9]*$"
+                    },
+                    "minItems": 1,
+                    "examples": [
+                        [
+                            "isobankName",
+                            "dfltPaysysId",
+                            "backDtdRqAllwd"
+                        ]
+                    ]
+                }
+            },
+            "additionalProperties": false
+        },
+        "contractReference": {
+            "type": "object",
+            "description": "Reference to an API contract with properties used by this node",
+            "required": [
+                "$contractRef",
+                "referencedProperties"
+            ],
+            "properties": {
+                "$contractRef": {
+                    "type": "string",
+                    "description": "URI reference to the API or database contract specification",
+                    "pattern": "^.+#.*$",
+                    "examples": [
+                        "masterdata/sync/PymtBankParam.json#/paths/~1api~1PymtBankParams/get"
+                    ]
+                },
+                "referencedProperties": {
+                    "type": "array",
+                    "description": "List of property names that are used through this contract",
+                    "items": {
+                        "type": "string",
+                        "pattern": "^[a-zA-Z][a-zA-Z0-9]*$"
+                    },
+                    "minItems": 1,
+                    "examples": [
+                        [
+                            "isobankName",
+                            "dfltPaysysId",
+                            "backDtdRqAllwd"
+                        ]
+                    ]
+                }
+            },
+            "additionalProperties": false
+        },
+        "nodeReference": {
+            "type": "object",
+            "description": "Reference to a node in the flow",
+            "required": [
+                "nodeKgId",
+                "id",
+                "name",
+                "type"
+            ],
+            "properties": {
+                "nodeKgId": {
+                    "type": "string",
+                    "pattern": "TODO",
+                    "description": "Knowledge graph identifier for the node",
+                    "examples": [
+                        "outbound-common::map-iso-to-rjct-po",
+                        "inbound-common::validate-payment-data"
+                    ],
+                    "x-derivation-logic": []
+                },
+                "id": {
+                    "type": "string",
+                    "description": "Unique identifier for the node",
+                    "x-derivation-logic": []
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Name of the node",
+                    "x-derivation-logic": []
+                },
+                "type": {
+                    "type": "string",
+                    "description": "Type of the node. In case of custom nodes, this corresponds to the custom node type",
+                    "x-derivation-logic": []
+                },
+                "props": {
+                    "type": "object",
+                    "description": "Additional properties of the node",
+                    "properties": {
+                        "$ref": {
+                            "type": "string",
+                            "description": "JSON reference to external definition"
+                        }
+                    }
+                }
+            }
+        },
+        "flowReference": {
+            "type": "object",
+            "description": "Reference to a flow or subflow",
+            "required": [
+                "kgId",
+                "id",
+                "type"
+            ],
+            "properties": {
+                "kgId": {
+                    "type": "string",
+                    "description": "Knowledge graph identifier of the referenced flow"
+                },
+                "id": {
+                    "type": "string",
+                    "description": "Unique identifier of the flow"
+                },
+                "type": {
+                    "type": "string",
+                    "description": "Type of flow",
+                    "enum": [
+                        "SUBFLOW",
+                        "FLOW"
+                    ]
+                }
+            }
+        },
+        "connectorReference": {
+            "type": "object",
+            "description": "Definition of a connector (input/output port)",
+            "required": [
+                "id",
+                "type",
+                "direction"
+            ],
+            "properties": {
+                "id": {
+                    "type": [
+                        "number",
+                        "string"
+                    ],
+                    "description": "Connector identifier - based on Node-RED port index or name of the link node"
+                },
+                "type": {
+                    "type": "string",
+                    "description": "Type of connector",
+                    "enum": [
+                        "LINK",
+                        "CONNECTOR"
+                    ]
+                },
+                "direction": {
+                    "type": "string",
+                    "description": "Direction of the connector",
+                    "enum": [
+                        "INWARD",
+                        "OUTWARD"
+                    ]
+                }
+            }
+        },
+        "pathPoint": {
+            "type": "object",
+            "description": "Endpoint in a flow path - can be a node, flow, or connector",
+            "oneOf": [
+                {
+                    "required": [
+                        "node"
+                    ],
+                    "properties": {
+                        "node": {
+                            "$ref": "#/definitions/nodeReference"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                {
+                    "required": [
+                        "flow"
+                    ],
+                    "properties": {
+                        "flow": {
+                            "$ref": "#/definitions/flowReference"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                {
+                    "required": [
+                        "connector"
+                    ],
+                    "properties": {
+                        "connector": {
+                            "$ref": "#/definitions/connectorReference"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            ]
+        },
+        "pathStep": {
+            "type": "object",
+            "description": "A single step in a flow path",
+            "required": [
+                "stepNumber",
+                "from",
+                "to"
+            ],
+            "properties": {
+                "stepNumber": {
+                    "type": "integer",
+                    "description": "Step number in the sequence",
+                    "minimum": 1
+                },
+                "from": {
+                    "$ref": "#/definitions/pathPoint",
+                    "description": "Source of the step"
+                },
+                "to": {
+                    "$ref": "#/definitions/pathPoint",
+                    "description": "Destination of the step"
+                }
+            }
+        },
+        "queueReference": {
+            "type": "object",
+            "description": "Reference to a queue with its configuration and properties (used for both input and output queues)",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Name of the queue",
+                    "examples": [
+                        "REJ-RET-SP-INIT",
+                        "INPY-VALIDATE-QUEUE",
+                        "OUTPY-SUCCESS-QUEUE"
+                    ]
+                },
+                "props": {
+                    "$ref": "#/definitions/inputProperties",
+                    "description": "Input properties (used for input queues)"
+                },
+                "$contractRef": {
+                    "type": "string",
+                    "description": "URI reference to the API contract specification (used for output queues)",
+                    "pattern": "^.+#.*$",
+                    "examples": [
+                        "masterdata/sync/PymtBankParam.json#/paths/~1api~1PymtBankParams/get"
+                    ]
+                },
+                "$modelRef": {
+                    "type": "string",
+                    "description": "URI reference to the primary data model schema (used for output queues)",
+                    "pattern": "^.+#.*$",
+                    "examples": [
+                        "masterdata/models/PaymentOrder.json#/components/schemas/PaymentOrder"
+                    ]
+                },
+                "$mappedModelRef": {
+                    "type": "string",
+                    "description": "URI reference to the mapped/transformed data model schema (used for output queues)",
+                    "pattern": "^.+#.*$",
+                    "examples": [
+                        "masterdata/models/OriginalPayment.json#/components/schemas/OriginalPayment"
+                    ]
+                },
+                "enrichedProperties": {
+                    "$ref": "#/definitions/flexiblePropertyMap",
+                    "description": "Properties that were enriched or added by the component (used for output queues)"
+                }
+            },
+            "additionalProperties": false
+        },
+        "apiReference": {
+            "type": "object",
+            "description": "Reference to an API endpoint with its configuration (used for both input and output APIs)",
+            "properties": {
+                "endpoint": {
+                    "type": "string",
+                    "description": "API endpoint path",
+                    "pattern": "^/.*$",
+                    "examples": [
+                        "/api/PymtBankParams",
+                        "/api/PaymentOrders"
+                    ]
+                },
+                "method": {
+                    "type": "string",
+                    "description": "HTTP method",
+                    "enum": [
+                        "get",
+                        "post",
+                        "put",
+                        "patch",
+                        "delete"
+                    ]
+                },
+                "parameters": {
+                    "type": "array",
+                    "description": "API parameters",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "in",
+                            "name"
+                        ],
+                        "properties": {
+                            "in": {
+                                "type": "string",
+                                "enum": [
+                                    "query",
+                                    "path",
+                                    "header",
+                                    "body"
+                                ]
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "props": {
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/inputProperties",
+                            "description": "Input properties (used for input/referenced APIs)"
+                        },
+                        {
+                            "$ref": "#/definitions/outputProperties",
+                            "description": "Output properties (used for output APIs)"
+                        }
+                    ]
+                }
+            },
+            "additionalProperties": false
+        },
+        "databaseReference": {
+            "type": "object",
+            "description": "Reference to a database table with query predicate and referenced properties",
+            "required": [
+                "tableName",
+                "predicate",
+                "props"
+            ],
+            "properties": {
+                "tableName": {
+                    "type": "string",
+                    "description": "Name of the database table",
+                    "pattern": "^[a-z][a-z0-9_]*$",
+                    "examples": [
+                        "pymtbankparams",
+                        "payment_orders"
+                    ]
+                },
+                "predicate": {
+                    "type": "object",
+                    "description": "Query predicate or filter conditions",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "Query expression or filter"
+                        }
+                    }
+                },
+                "props": {
+                    "$ref": "#/definitions/inputProperties"
+                }
+            },
+            "additionalProperties": false
+        },
+        "databaseOutputReference": {
+            "type": "object",
+            "description": "Reference to a database table with enriched output properties",
+            "required": [
+                "tableName",
+                "predicate",
+                "props"
+            ],
+            "properties": {
+                "tableName": {
+                    "type": "string",
+                    "description": "Name of the database table",
+                    "pattern": "^[a-z][a-z0-9_]*$"
+                },
+                "predicate": {
+                    "type": "object",
+                    "description": "Query predicate or filter conditions",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "Query expression or filter"
+                        }
+                    }
+                },
+                "props": {
+                    "$ref": "#/definitions/outputProperties"
+                }
+            },
+            "additionalProperties": false
+        },
+        "inputProperties": {
+            "type": "object",
+            "description": "Input properties with contract and model references",
+            "required": [
+                "$contractRef",
+                "$modelRef",
+                "$mappedModelRef",
+                "referencedProperties"
+            ],
+            "properties": {
+                "$contractRef": {
+                    "type": "string",
+                    "description": "URI reference to the API or service contract",
+                    "pattern": "^.+#.*$"
+                },
+                "$modelRef": {
+                    "type": "string",
+                    "description": "URI reference to the primary data model schema",
+                    "pattern": "^.+#.*$"
+                },
+                "$mappedModelRef": {
+                    "type": "string",
+                    "description": "URI reference to the mapped/target data model schema",
+                    "pattern": "^.+#.*$"
+                },
+                "referencedProperties": {
+                    "$ref": "#/definitions/nestedPropertyMap",
+                    "description": "Map of properties referenced from the source"
+                }
+            },
+            "additionalProperties": false
+        },
+        "outputProperties": {
+            "type": "object",
+            "description": "Output properties with contract and model references",
+            "required": [
+                "$contractRef",
+                "$modelRef",
+                "$mappedModelRef",
+                "enrichedProperties"
+            ],
+            "properties": {
+                "$contractRef": {
+                    "type": "string",
+                    "description": "URI reference to the API or service contract",
+                    "pattern": "^.+#.*$"
+                },
+                "$modelRef": {
+                    "type": "string",
+                    "description": "URI reference to the primary data model schema",
+                    "pattern": "^.+#.*$"
+                },
+                "$mappedModelRef": {
+                    "type": "string",
+                    "description": "URI reference to the mapped/target data model schema",
+                    "pattern": "^.+#.*$"
+                },
+                "enrichedProperties": {
+                    "$ref": "#/definitions/flexiblePropertyMap",
+                    "description": "Map of properties that were enriched or added"
+                }
+            },
+            "additionalProperties": false
+        },
+        "nestedPropertyMap": {
+            "type": "object",
+            "description": "Map of property names to their source nodes with nested structure",
+            "patternProperties": {
+                "^[a-zA-Z][a-zA-Z0-9.]*$": {
+                    "type": "object",
+                    "description": "Property configuration with node references",
+                    "required": [
+                        "props"
+                    ],
+                    "properties": {
+                        "props": {
+                            "type": "object",
+                            "properties": {
+                                "nodeNames": {
+                                    "type": "array",
+                                    "description": "List of nodes that reference this property",
+                                    "items": {
+                                        "type": "string"
+                                    },
+                                    "examples": [
+                                        [
+                                            "NODE_NAME"
+                                        ],
+                                        [
+                                            "EnrichmentNode1",
+                                            "ValidationNode2"
+                                        ]
+                                    ]
+                                },
+                                "derivationLogic": {
+                                    "type": "string",
+                                    "description": "Logic describing how this property is derived or computed"
+                                }
+                            },
+                            "anyOf": [
+                                {
+                                    "required": ["nodeNames"]
+                                },
+                                {
+                                    "required": ["derivationLogic"]
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "additionalProperties": false,
+            "x-derivation-logic": [
+                "Map each property to the nodes that reference it",
+                "Property names can use dot notation for nested properties (e.g., 'iso.isobankName')",
+                "Node names indicate which processing steps interact with each property",
+                "Track data lineage through the component flow"
+            ]
+        },
+        "flexiblePropertyMap": {
+            "type": "object",
+            "description": "Map of property names to their source nodes - supports both array and nested object formats",
+            "patternProperties": {
+                "^[a-zA-Z][a-zA-Z0-9.]*$": {
+                    "oneOf": [
+                        {
+                            "type": "array",
+                            "description": "Direct array of node names",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        {
+                            "type": "object",
+                            "description": "Nested structure with props.nodeNames and/or props.derivationLogic",
+                            "required": [
+                                "props"
+                            ],
+                            "properties": {
+                                "props": {
+                                    "type": "object",
+                                    "properties": {
+                                        "nodeNames": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "derivationLogic": {
+                                            "type": "string",
+                                            "description": "Logic describing how this property is derived or computed"
+                                        }
+                                    },
+                                    "anyOf": [
+                                        {
+                                            "required": ["nodeNames"]
+                                        },
+                                        {
+                                            "required": ["derivationLogic"]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "additionalProperties": false,
+            "x-derivation-logic": [
+                "Map each property to the nodes that enrich it",
+                "Supports both direct array format and nested props.nodeNames format",
+                "Property names can use dot notation for nested properties (e.g., 'iso.isobankName')",
+                "Node names indicate which processing steps enrich each property",
+                "Track data enrichment lineage through the component flow"
+            ]
+        }
+    }
+}

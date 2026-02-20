@@ -1,0 +1,68 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://example.com/schemas/metadata.schema.json",
+    "title": "Knowledge Graph Metadata Schema",
+    "description": "Schema for knowledge graph metadata information",
+    "type": "object",
+    "required": [
+        "generatedFrom",
+        "generatedAt",
+        "version"
+    ],
+    "properties": {
+        "generatedFrom": {
+            "type": "string",
+            "description": "Source file path from which the KG was generated",
+            "examples": [
+                "/workspace/canvas/knowledge_graph/Payments/oepy-oepy-inbound-payment/idp/flow-llds/INPY-RRS_to_REJ-RET-SP-INIT_path_0.md",
+                "c:\\Users\\user_id\\Documents\\Payments\\oepy-oepy-inbound-payment\\idp\\flow-llds\\INPY-RRS_to_REJ-RET-SP-INIT_path_0.md"
+            ],
+            "x-derivation-logic": [
+                "Capture the absolute file path of the source document",
+                "Use forward slashes for Unix/Linux paths, backslashes for Windows paths",
+                "Include the full path from root to the source file"
+            ]
+        },
+        "generatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp of generation in ISO 8601 format",
+            "examples": [
+                "2026-01-08T00:00:00.000Z",
+                "2026-01-28T15:30:45.123Z"
+            ],
+            "x-derivation-logic": [
+                "Use ISO 8601 date-time format with UTC timezone",
+                "Format: YYYY-MM-DDTHH:mm:ss.sssZ",
+                "Capture at the time of knowledge graph generation"
+            ]
+        },
+        "version": {
+            "type": "string",
+            "description": "Semantic version of the knowledge graph",
+            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+            "examples": [
+                "1.0.0",
+                "2.1.5"
+            ],
+            "x-derivation-logic": [
+                "Follow semantic versioning (MAJOR.MINOR.PATCH)",
+                "MAJOR: Incompatible schema/structure changes",
+                "MINOR: Backward-compatible functionality additions",
+                "PATCH: Backward-compatible bug fixes or minor updates"
+            ]
+        },
+        "generatedBy": {
+            "type": "string",
+            "description": "Name or identifier of the tool/system that generated the KG",
+            "examples": [
+                "PayGenticAI-KG-Generator",
+                "FlowAnalyzer v2.1"
+            ]
+        },
+        "sourceVersion": {
+            "type": "string",
+            "description": "Version of the source document if available"
+        }
+    }
+}

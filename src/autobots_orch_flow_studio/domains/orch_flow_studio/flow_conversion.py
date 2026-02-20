@@ -58,6 +58,7 @@ _FALLBACK_KNOWN_TYPES: frozenset[str] = frozenset({
     "file in",
     "watch",
     "subflow",
+    "group",  # Core Node-RED group (editor container); must NOT be replaced
     "designer_node_existing",
     "designer_node_new",
 })
@@ -110,6 +111,7 @@ def get_known_node_types() -> set[str]:
     else:
         known.add("tab")
         known.add("subflow")
+        known.add("group")
         known.add("designer_node_existing")
         known.add("designer_node_new")
         known.discard("unknown")  # Replace unknown placeholders with designer_node_existing
@@ -204,9 +206,39 @@ def _order_flows_for_editor(flows: list[Any]) -> None:
     flows.sort(key=_order_key)
 
 
+def _strip_invalid_group_refs_flat(flows: list[Any]) -> None:
+    """Remove g (group) refs where parent is designer_node_existing.
+
+    The Flow editor's addChild expects group parents to be type 'group'.
+    When designer_node_existing was used as a group placeholder (from conversion),
+    the editor crashes with 'Cannot read properties of undefined (reading length)'.
+    Stripping g lets the flow load; nodes render at tab level without grouping.
+    """
+    if not flows or not isinstance(flows, list):
+        return
+    # Only handle flat format
+    if any(isinstance(n, dict) and "nodes" in n for n in flows if isinstance(n, dict)):
+        return
+    # Group parents that are designer_node_existing (invalid for addChild)
+    invalid_group_ids: set[str] = set()
+    for n in flows:
+        if not isinstance(n, dict):
+            continue
+        if n.get("type") == "designer_node_existing" and isinstance(n.get("id"), str):
+            invalid_group_ids.add(n["id"])
+    # Strip g from nodes whose group parent is invalid
+    for n in flows:
+        if not isinstance(n, dict):
+            continue
+        g = n.get("g")
+        if isinstance(g, str) and g in invalid_group_ids:
+            n.pop("g", None)
+
+
 def ensure_flow_order(flows: list[Any]) -> None:
-    """Sort flat flow array so tabs come first. Safe to call even when no conversion done."""
+    """Sort flat flow array so tabs come first. Strips invalid group refs for editor compatibility."""
     _order_flows_for_editor(flows)
+    _strip_invalid_group_refs_flat(flows)
 
 
 def flow_needs_conversion(flows: list[Any]) -> bool:
@@ -237,12 +269,18 @@ def flow_needs_conversion(flows: list[Any]) -> bool:
     return _scan(flows)
 
 
+def strip_invalid_group_refs(flows: list[Any]) -> None:
+    """Remove g refs where parent is designer_node_existing to avoid editor addChild crash."""
+    _strip_invalid_group_refs_flat(flows)
+
+
 def convert_unknown_nodes_to_designer(flows: list[Any]) -> list[Any]:
     """Replace unknown/custom nodes with designer_node_existing, preserving wires and layout.
 
     Handles flat arrays and nested flow structures (flows with nodes/configs/subflows).
     Also replaces type "unknown" (Node-RED placeholder for missing node types).
     Orders flat flows so tabs come first to improve Node-RED editor loading.
+    Strips invalid group refs (g pointing to designer_node_existing) to avoid addChild crash.
 
     Args:
         flows: List of flow nodes or flow objects (as dicts).
@@ -256,4 +294,5 @@ def convert_unknown_nodes_to_designer(flows: list[Any]) -> list[Any]:
     known = get_known_node_types()
     _process_node_list(flows, known)
     _order_flows_for_editor(flows)
+    _strip_invalid_group_refs_flat(flows)
     return flows

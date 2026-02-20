@@ -1,0 +1,153 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://example.com/schemas/component-kg.schema.json",
+    "title": "Component Knowledge Graph Schema",
+    "description": "Schema for component-level knowledge graph representation capturing input, processing, and output flows",
+    "type": "object",
+    "required": [
+        "kgId",
+        "input",
+        "referenced",
+        "output",
+        "metadata"
+    ],
+    "properties": {
+        "kgId": {
+            "type": "string",
+            "description": "Unique knowledge graph identifier for the component",
+            "pattern": "^[a-z0-9-]+:[A-Z0-9_-]+::[a-z0-9-]+:[A-Z0-9_-]+$",
+            "examples": [
+                "oepy-outbound-payments:INPY-RRS::oepy-outbound-payments:REJ-RET-SP-INIT",
+                "oepy-inbound-payments:INPY-VALIDATE::oepy-inbound-payments:OUTPY-SUCCESS"
+            ],
+            "x-derivation-logic": [
+                "Format: {repository}:{EntryQueue}::{repository}:{ExitQueue}",
+                "Use repository name for source and target system",
+                "Use the input queue name as EntryQueue",
+                "Use the output queue name as ExitQueue",
+                "Represents the end-to-end data transformation path across systems"
+            ]
+        },
+        "input": {
+            "type": "object",
+            "description": "Input sources for the component including queues and APIs",
+            "required": [
+                "queue",
+                "api"
+            ],
+            "properties": {
+                "queue": {
+                    "allOf": [
+                        {
+                            "$ref": "common-specs.json#/definitions/queueReference"
+                        }
+                    ],
+                    "required": ["name", "props"],
+                    "description": "Input queue configuration with referenced properties"
+                },
+                "api": {
+                    "allOf": [
+                        {
+                            "$ref": "common-specs.json#/definitions/apiReference"
+                        }
+                    ],
+                    "required": ["endpoint", "method", "parameters", "props"],
+                    "description": "Input API configuration with referenced properties"
+                }
+            },
+            "additionalProperties": false
+        },
+        "referenced": {
+            "type": "object",
+            "description": "External services and databases referenced during component processing",
+            "required": [
+                "api",
+                "db"
+            ],
+            "properties": {
+                "api": {
+                    "type": "array",
+                    "description": "List of external APIs called by this component",
+                    "items": {
+                        "allOf": [
+                            {
+                                "$ref": "common-specs.json#/definitions/apiReference"
+                            }
+                        ],
+                        "required": ["endpoint", "method", "parameters", "props"]
+                    },
+                    "x-derivation-logic": [
+                        "Identify all external API calls within the component flow",
+                        "Include contract references and properties accessed",
+                        "Document API endpoints, methods, and parameters"
+                    ]
+                },
+                "db": {
+                    "type": "array",
+                    "description": "List of database entities read by this component",
+                    "items": {
+                        "$ref": "common-specs.json#/definitions/databaseReference"
+                    },
+                    "x-derivation-logic": [
+                        "Identify all database read operations",
+                        "Include table names, query predicates, and properties accessed",
+                        "Reference data model specifications"
+                    ]
+                }
+            },
+            "additionalProperties": false
+        },
+        "output": {
+            "type": "object",
+            "description": "Output destinations and enriched data produced by the component",
+            "required": [
+                "queue",
+                "api",
+                "db"
+            ],
+            "properties": {
+                "queue": {
+                    "allOf": [
+                        {
+                            "$ref": "common-specs.json#/definitions/queueReference"
+                        }
+                    ],
+                    "required": ["name", "$contractRef", "$modelRef", "$mappedModelRef", "enrichedProperties"],
+                    "description": "Output queue configuration with enriched properties"
+                },
+                "api": {
+                    "type": "array",
+                    "description": "List of APIs called with enriched data",
+                    "items": {
+                        "allOf": [
+                            {
+                                "$ref": "common-specs.json#/definitions/apiReference"
+                            }
+                        ],
+                        "required": ["endpoint", "method", "parameters", "props"]
+                    },
+                    "x-derivation-logic": [
+                        "Document APIs called with enriched or transformed data",
+                        "Include properties that were enriched by the component"
+                    ]
+                },
+                "db": {
+                    "type": "array",
+                    "description": "List of database entities written with enriched data",
+                    "items": {
+                        "$ref": "common-specs.json#/definitions/databaseOutputReference"
+                    },
+                    "x-derivation-logic": [
+                        "Identify all database write operations",
+                        "Document properties that were enriched or added by the component"
+                    ]
+                }
+            },
+            "additionalProperties": false
+        },
+        "metadata": {
+            "$ref": "metadata-schema-spec.json#",
+            "description": "Metadata about the component knowledge graph generation"
+        }
+    }
+}
