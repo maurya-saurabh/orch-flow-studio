@@ -1,0 +1,17 @@
+{
+  "type": "behaviours",
+  "title": "Behaviours",
+  "intro": "# 4. Behaviours:\nType → LLM Assisted / Standard / Manual\nSub-Type → Enrichment / Validation / Host Call / Processing / Persistence\n*Assuming Behaviours are functions to be written, or in our case, nodes to be created",
+  "nodes": [
+    {
+      "behaviourName": "enrichCovSttlmtAcct",
+      "toBeRegistered": "true",
+      "folderName": "oepy-common/SP",
+      "nodeName": "cover-sttlmtacct-derivation",
+      "fileName": "enrichCovSttlmtAcct",
+      "config": "",
+      "cosmeticProperties": "{ “Description”: “This node derives cover settlement account” }",
+      "businessLogic": "{}"
+    }
+  ]
+}

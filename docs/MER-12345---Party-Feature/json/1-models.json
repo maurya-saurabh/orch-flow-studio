@@ -1,0 +1,26 @@
+{
+  "PaymentOrder": {
+    "isNewModel": false,
+    "fields": {
+      "coverPaysysId": {
+        "type": "String",
+        "businessKey": true,
+        "mandatory": false,
+        "properties": "{maxLength: 12}",
+        "description": "Business-assignedcoverPaysysId"
+      }
+    }
+  },
+  "PoAddnlDtls": {
+    "isNewModel": false,
+    "fields": {
+      "isCoverPaysysDiff": {
+        "type": "String",
+        "businessKey": false,
+        "mandatory": false,
+        "properties": "{maxLength: 1}",
+        "description": "Business-assignedcoverPaysysIdifdifferent"
+      }
+    }
+  }
+}
