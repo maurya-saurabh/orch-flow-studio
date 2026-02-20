@@ -1,0 +1,16 @@
+{
+  "businssLogicId": "swift-outbound-payment::INPY",
+  "llmDerivedBusinessLogic": [
+    "This flow processes reject responses from the payment system (RRS queue) through multiple processing paths.",
+    "Paths include simplified MH response generation, full entity creation with event logging, technical responses with validation checks, and flows with related entity checking and conditional processing.",
+    "All paths route to MH-CONSUMER-RES queue for message handler consumption."
+  ],
+  "curatedBusinessLogic": [
+    "Processes reject responses received from the payment system (RRS queue) through multiple processing paths. Each path handles different scenarios including simplified MH response generation, full entity creation with event logging, technical responses with validation checks, and comprehensive flows with related entity checking and conditional processing logic. All paths ultimately route to MH-CONSUMER-RES queue for message handler consumption."
+  ],
+  "metadata": {
+    "generatedFrom": "docs/design/kg_samples/oepy-docs/knowledge-base/swift-outbound-payment/flows/INPY-RRS_to_MH-CONSUMER-RES.json",
+    "generatedAt": "2026-02-18T00:00:00.000Z",
+    "version": "1.0.0"
+  }
+}

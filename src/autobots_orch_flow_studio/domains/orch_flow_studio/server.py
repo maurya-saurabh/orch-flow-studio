@@ -1,9 +1,11 @@
 # ABOUTME: Orch Flow Studio-specific Chainlit entry point for the orch_flow_studio_chat use case.
 # ABOUTME: Wires OAuth and the shared flow tools.
 
+import asyncio
 import json
 import logging
 import os
+import time
 from pathlib import Path
 
 import chainlit as cl
@@ -131,25 +133,33 @@ def _write_flow_file(flows, path: str):
         json.dump(flows, f, indent=2)
 
 
+# Short delay after POST so Node-RED editor is ready when user opens the link (reduces need to refresh/click multiple times)
+_FLOW_DEPLOY_SETTLE_SECONDS = 1.5
+
+
 def _open_flows_message():
+    # Cache-bust so opening the link forces a fresh load and shows the deployed flow
+    open_url = f"{NODE_RED_URL}?t={int(time.time())}"
     return (
-        f"[**Open Node-RED**]({NODE_RED_URL}) — "
-        "click to view your flow (right-click → Open in new tab)"
+        f"[**Open Node-RED**]({open_url}) — open in a new tab to view your flow. "
+        "**If Node-RED is already open, refresh that tab (F5)** to see the loaded flow."
     )
 
 
 async def _load_flows_then_send(flows, source_label: str, save_path: str | None = None):
-    """POST flows to Node-RED and send success message with open link. Optionally store path for Update Flow."""
+    """POST flows to Node-RED, wait for editor to settle, then send success message with open link."""
     client = _get_node_red_client()
     await _post_flows(client, flows)
+    # Give Node-RED a moment to finish so the canvas shows the flow when user opens the link
+    await asyncio.sleep(_FLOW_DEPLOY_SETTLE_SECONDS)
     if save_path:
         cl.user_session.set("last_loaded_flow_path", save_path)
     else:
         cl.user_session.set("last_loaded_flow_path", None)
     if save_path:
-        msg = f"Flow loaded from {source_label} into Flow. You can work on it, then use **Update Flow** to save changes back."
+        msg = f"Flow loaded from {source_label} into Node-RED. You can work on it, then use **Update Flow** to save changes back."
     else:
-        msg = "Temp flow loaded. You can work on it, then use **Save Flow** to save with a name."
+        msg = "Temp flow loaded into Node-RED. You can work on it, then use **Save Flow** to save with a name."
     await cl.Message(content=f"{msg}\n\n{_open_flows_message()}").send()
 
 
@@ -428,7 +438,7 @@ async def on_load_flow_from_path(action: cl.Action):
         else:
             ensure_flow_order(flows)
         await cl.Message(
-            content="Loading flow into Node-RED… (this may take a moment for large flows)"
+            content="Loading flow into Node-RED… (wait for the next message, then open the link; refresh the Node-RED tab if the canvas is blank)"
         ).send()
         await _load_flows_then_send(flows, f"`{path}`", save_path=path)
     except httpx.ConnectError:

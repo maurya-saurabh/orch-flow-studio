@@ -1,0 +1,57 @@
+{
+  "openapi": "3.0.2",
+  "info": {
+    "title": "PymtSchmParam APIs",
+    "version": "1.0.0",
+    "description": "API Documentation for Scheme Parameter",
+    "x-fbp-generated": "2024-08-18 19:34:25"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:1160/shm"
+    }
+  ],
+  "paths": {
+    "/api/PymtSchmParams/getAllSchmAndOpParams": {
+      "get": {
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "paysysId": {
+                      "type": "array",
+                      "description": "Array of scheme parameters",
+                      "items": {
+                        "$ref": "../models/PymtSchmParam.json#/components/schemas/PymtSchmParam"
+                      }
+                    },
+                    "scheme": {
+                      "type": "array",
+                      "description": "Array of scheme operation parameters",
+                      "items": {
+                        "$ref": "../models/PymtSchmParam.json#/components/schemas/PymtSchmParam"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "$ref": "../modelTestParams/PymtSchmParam.json#/payloads/response"
+                }
+              }
+            },
+            "description": "Fetch paysysId and scheme parameters for all payment systems"
+          }
+        },
+        "description": "Fetch scheme and operations parameters for all payment systems",
+        "operationId": "PymtSchmParam_getAllSchmAndOpParams",
+        "x-fbp-params": {
+          "type": "custom"
+        }
+      }
+    }
+  }
+}

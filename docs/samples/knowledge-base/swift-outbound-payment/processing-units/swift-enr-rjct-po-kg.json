@@ -1,0 +1,93 @@
+{
+  "nodeKgId": "swift-outbound-payment::swift-enr-rjct-po",
+  "nodeName": "swift-enr-rjct-po",
+  "category": "Reject",
+  "functionName": "swiftEnrichRjctPoDtls",
+  "sourceFile": "swiftEnrichRjctPo.js",
+  "businessLogic": "This node enriches reject payment order details for SWIFT outbound payments. It fetches the original payment order from the database, prepares reject entity details by reversing party information (creditor becomes debtor and vice versa), determines the appropriate service ID (RTS for TCP, RRS for others), enriches settlement amounts and dates, validates reject reason codes against scheme provider configurations, and handles special processing for sanctions-related rejections. The node supports reroute entities and maintains transaction traceability through original identifiers.",
+  "parameters": [
+    "msg",
+    "config"
+  ],
+  "inputs": [
+    {
+      "$contractRef": "masterdata-samples/async/INPY-RRS.json#/channels/INPY-RRS",
+      "referencedProperties": [
+        "stsIdSeq",
+        "uetrSeq",
+        "perTransactionLimitAmt",
+        "numberOfTransPerDay"
+      ]
+    },
+    {
+      "$contractRef": "../../masterdata-samples/sync/PymtSchmParam.json#/paths/~PymtSchmParam~api~PymtSchmParams~getAllSchmAndOpParams/get",
+      "referencedProperties": [
+        "paysysId"
+      ]
+    }
+  ],
+  "referenced": {
+    "api": [
+      {
+        "$contractRef": "masterdata-samples/sync/PymtSchmParam.json#/paths/~PymtSchmParam~api~PymtSchmParams~getAllSchmAndOpParams/get",
+        "$modelRef": "masterdata-samples/models/PymtSchmParam.json#/components/schemas/PymtSchmParam",
+        "referencedProperties": [
+          "paysysId",
+          "paysysDate"
+        ]
+      },
+      {
+        "$contractRef": "masterdata-samples/sync/PymtSchmParam.json#/paths/~PymtSchmParam~api~PymtSchmParams~getAllSchmAndOpParams/get",
+        "$modelRef": "masterdata-samples/models/PymtSchmParam.json#/components/schemas/PymtSchmParam",
+        "referencedProperties": [
+          "rjctRsnCd",
+          "paysysId",
+          "serviceId",
+          "parentServiceId",
+          "description"
+        ]
+      }
+    ],
+    "db": [
+      {
+        "$modelRef": "masterdata-samples/models/PymtSchmParam.json#/components/schemas/PymtSchmParam",
+        "referencedProperties": [
+          "washAcct",
+          "ntwrkDirId",
+          "sttlmType",
+          "suspendFrom"
+        ]
+      }
+    ]
+  },
+  "outputs": {
+    "returnModels": [
+      {
+        "$modelRef": "masterdata/models/Message.json#/components/schemas/Message",
+        "enrichedProperties": [
+          "rjctEntityDtls"
+        ]
+      },
+      {
+        "$modelRef": "masterdata/models/RejctEntityDetails.json#/components/schemas/RejctEntityDetails",
+        "enrichedProperties": [
+          "uetrSeq",
+          "perTransactionLimitAmt",
+          "numberOfTransPerDay"
+        ]
+      }
+    ],
+    "db": []
+  },
+  "errorConstants": [
+    "EXT_RSN_CD_INVALID",
+    "PYMT_ORDER_FETCH_ERROR"
+  ],
+  "metadata": {
+    "generatedBy": "GitHub Copilot",
+    "generatedAt": "2026-01-28T00:00:00Z",
+    "version": "1.0.0",
+    "sourceRepository": "oepy-rtp-swift-swift-outbound-payment",
+    "schemaVersion": "1.0"
+  }
+}

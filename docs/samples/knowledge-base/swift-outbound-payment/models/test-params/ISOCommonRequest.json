@@ -1,0 +1,424 @@
+{
+  "modelPropertyTestProperties": {
+    "reqID": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    },
+    "messageIdentification": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    },
+    "creationDateTime": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    },
+    "authorisationCode": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    },
+    "authorisationProprietary": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    },
+    "numberOfTransactions": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    },
+    "controlSum": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    },
+    "initiatingParty": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    },
+    "forwardingAgent": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    },
+    "paymentInformationIdentification": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    },
+    "paymentMethod": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    },
+    "batchBooking": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    },
+    "paymentTypeInformation": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    },
+    "requestedExecutionDate": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    },
+    "poolingAdjustmentDate": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    },
+    "debtor": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    },
+    "debtorAccount": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    },
+    "debtorAgent": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    },
+    "debtorAgentAccount": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    },
+    "instructionForDebtorAgent": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    },
+    "ultimateDebtor": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    },
+    "chargeBearer": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    },
+    "chargesAccount": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    },
+    "chargesAccountAgent": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    },
+    "creditTransferTransactionInformation": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    },
+    "dealRefNum": {
+      "values": {
+        "validValues": [],
+        "invalidValues": []
+      },
+      "assertion": {
+        "assertionRules": {
+          "1": {
+            "rule": "Value must be valid per schema",
+            "evalType": "ruleBasedConstant",
+            "output": "string"
+          }
+        },
+        "assertionPath": "response.body"
+      }
+    }
+  },
+  "payloads": {
+    "request": {},
+    "response": {}
+  }
+}

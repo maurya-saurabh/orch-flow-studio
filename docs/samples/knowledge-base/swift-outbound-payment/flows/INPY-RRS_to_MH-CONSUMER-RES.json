@@ -1,0 +1,718 @@
+{
+    "kgId": "Reject:INPY-RRS::Reject:MH-CONSUMER-RES",
+    "componentName": "INPY-RRS_to_MH-CONSUMER-RES",
+    "pathType": "Response",
+    "sourceFile": "Multiple: ACH_Technical_Responses_and_ARS.json, Technical_Responses_and_ARS.json",
+    "flowType": "flow",
+    "businessPurpose": {
+        "$ref": "INPY.business.json"
+    },
+    "entryPoint": {
+        "node": {
+            "name": "Pull Records from RRS Q",
+            "id": "64a1cb15.f72944",
+            "type": "receive-message",
+            "props": {
+                "$ref": "TODO"
+            }
+        }
+    },
+    "exitPoint": {
+        "node": {
+            "name": "MH-CONSUMER-RES",
+            "id": "23a2cb17.l12933",
+            "type": "send-message-no-prefix",
+            "props": {
+                "$ref": "TODO"
+            }
+        }
+    },
+    "processingNodes": [
+        {
+            "nodeId": "swift-enr-rjct-po-kg",
+            "name": "swift-enr-rjct-po-kg",
+            "type": "swift-enr-rjct-po-kg"
+        },
+        {
+            "nodeId": "common-mh-response",
+            "name": "common-mh-response",
+            "type": "common-mh-response"
+        },
+        {
+            "nodeId": "fetch-original-payment",
+            "name": "fetch-original-payment",
+            "type": "fetch-original-payment"
+        },
+        {
+            "nodeId": "fetch-orig-payment-details",
+            "name": "fetch-orig-payment-details",
+            "type": "fetch-orig-payment-details"
+        },
+        {
+            "nodeId": "fetch-rltd-entities",
+            "name": "fetch-rltd-entities",
+            "type": "fetch-rltd-entities"
+        },
+        {
+            "nodeId": "create-event",
+            "name": "create-event",
+            "type": "create-event"
+        },
+        {
+            "nodeId": "enrich-rjct-for-ret",
+            "name": "enrich-rjct-for-ret",
+            "type": "enrich-rjct-for-ret"
+        },
+        {
+            "nodeId": "derive-settlement-session",
+            "name": "derive-settlement-session",
+            "type": "derive-settlement-session"
+        },
+        {
+            "nodeId": "reject-entity-creation",
+            "name": "reject-entity-creation",
+            "type": "reject-entity-creation"
+        },
+        {
+            "nodeId": "reject-mh-response",
+            "name": "reject-mh-response",
+            "type": "reject-mh-response"
+        }
+    ],
+    "processingFlows": [],
+    "flowPaths": {
+        "path_1": {
+            "flowFile": "ACH_Technical_Responses_and_ARS.json",
+            "flowId": "fa7a9847.1815a8",
+            "pathNodeCount": 9,
+            "description": "ACH simplified path - Maps ISO to reject PO, fetches original payment, creates MH response",
+            "steps": [
+                {
+                    "stepNumber": 1,
+                    "from": {
+                        "node": {
+                            "name": "Pull Records from RRS Q",
+                            "type": "receive-message",
+                            "id": "7f8a39c1.a47d58",
+                            "props": {
+                "$ref": "TODO"
+              }
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "map-iso-to-rjct-po",
+                            "type": "map-iso-to-rjct-po",
+                            "id": "d30551aa.f4e7f"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 2,
+                    "from": {
+                        "node": {
+                            "name": "map-iso-to-rjct-po",
+                            "type": "map-iso-to-rjct-po",
+                            "id": "d30551aa.f4e7f"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "Error?",
+                            "type": "switch",
+                            "id": "c4976fdc.a4085"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 3,
+                    "from": {
+                        "node": {
+                            "name": "Error?",
+                            "type": "switch",
+                            "id": "c4976fdc.a4085"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "fetch-original-payment",
+                            "type": "fetch-original-payment",
+                            "id": "991044c1.ba6d18"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 4,
+                    "from": {
+                        "node": {
+                            "name": "fetch-original-payment",
+                            "type": "fetch-original-payment",
+                            "id": "991044c1.ba6d18"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "Error?",
+                            "type": "switch",
+                            "id": "bdca4a74.872fe8"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 5,
+                    "from": {
+                        "node": {
+                            "name": "Error?",
+                            "type": "switch",
+                            "id": "bdca4a74.872fe8"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "msgSlrNumber",
+                            "type": "function",
+                            "id": "a4d0eb0.59c2418"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 6,
+                    "from": {
+                        "node": {
+                            "name": "msgSlrNumber",
+                            "type": "function",
+                            "id": "a4d0eb0.59c2418"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "common-mh-response",
+                            "type": "common-mh-response",
+                            "id": "4c7a18b3.38ed38"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 7,
+                    "from": {
+                        "node": {
+                            "name": "common-mh-response",
+                            "type": "common-mh-response",
+                            "id": "4c7a18b3.38ed38"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "Error?",
+                            "type": "switch",
+                            "id": "30d93922.2bedd6"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 8,
+                    "from": {
+                        "node": {
+                            "name": "Error?",
+                            "type": "switch",
+                            "id": "30d93922.2bedd6"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "MH-CONSUMER-RES",
+                            "type": "send-message-no-prefix",
+                            "id": "4eb4049f.ffa46c"
+                        }
+                    }
+                }
+            ]
+        },
+        "path_2": {
+            "flowFile": "ACH_Technical_Responses_and_ARS.json",
+            "flowId": "fa7a9847.1815a8",
+            "pathNodeCount": 12,
+            "description": "ACH full entity creation path - Includes event logging, entity creation, and comprehensive processing",
+            "steps": [
+                {
+                    "stepNumber": 1,
+                    "from": {
+                        "node": {
+                            "name": "Pull Records from RRS Q",
+                            "type": "receive-message",
+                            "id": "7f8a39c1.a47d58"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "map-iso-to-rjct-po",
+                            "type": "map-iso-to-rjct-po",
+                            "id": "d30551aa.f4e7f"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 2,
+                    "from": {
+                        "node": {
+                            "name": "map-iso-to-rjct-po",
+                            "type": "map-iso-to-rjct-po",
+                            "id": "d30551aa.f4e7f"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "Error?",
+                            "type": "switch",
+                            "id": "c4976fdc.a4085"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 3,
+                    "from": {
+                        "node": {
+                            "name": "Error?",
+                            "type": "switch",
+                            "id": "c4976fdc.a4085"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "fetch-original-payment",
+                            "type": "fetch-original-payment",
+                            "id": "991044c1.ba6d18"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 4,
+                    "from": {
+                        "node": {
+                            "name": "fetch-original-payment",
+                            "type": "fetch-original-payment",
+                            "id": "991044c1.ba6d18"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "Error?",
+                            "type": "switch",
+                            "id": "bdca4a74.872fe8"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 5,
+                    "from": {
+                        "node": {
+                            "name": "Error?",
+                            "type": "switch",
+                            "id": "bdca4a74.872fe8"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "event remark",
+                            "type": "function",
+                            "id": "a860d902.f376f8"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 6,
+                    "from": {
+                        "node": {
+                            "name": "event remark",
+                            "type": "function",
+                            "id": "a860d902.f376f8"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "create-event",
+                            "type": "create-event",
+                            "id": "1401e16c.86c1df"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 7,
+                    "from": {
+                        "node": {
+                            "name": "create-event",
+                            "type": "create-event",
+                            "id": "1401e16c.86c1df"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "enrich-rjct-for-ret",
+                            "type": "enrich-rjct-for-ret",
+                            "id": "8f8a4179.5840b"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 8,
+                    "from": {
+                        "node": {
+                            "name": "enrich-rjct-for-ret",
+                            "type": "enrich-rjct-for-ret",
+                            "id": "8f8a4179.5840b"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "derive-settlement-session",
+                            "type": "derive-settlement-session",
+                            "id": "3b67e02c.33cef"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 9,
+                    "from": {
+                        "node": {
+                            "name": "derive-settlement-session",
+                            "type": "derive-settlement-session",
+                            "id": "3b67e02c.33cef"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "reject-entity-creation",
+                            "type": "reject-entity-creation",
+                            "id": "6a2ad1c7496f8fe0"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 10,
+                    "from": {
+                        "node": {
+                            "name": "reject-entity-creation",
+                            "type": "reject-entity-creation",
+                            "id": "6a2ad1c7496f8fe0"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "reject-mh-response",
+                            "type": "reject-mh-response",
+                            "id": "246fcc10259df5b1"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 11,
+                    "from": {
+                        "node": {
+                            "name": "reject-mh-response",
+                            "type": "reject-mh-response",
+                            "id": "246fcc10259df5b1"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "FMH Response queue",
+                            "type": "send-message-no-prefix",
+                            "id": "1b2cadad876a7eb0"
+                        }
+                    }
+                }
+            ]
+        },
+        "path_3": {
+            "flowFile": "Technical_Responses_and_ARS.json",
+            "flowId": "fa7a9847.1815a8",
+            "pathNodeCount": 17,
+            "description": "Technical response comprehensive path - Full entity creation with related entity checking and conditional processing",
+            "steps": [
+                {
+                    "stepNumber": 1,
+                    "from": {
+                        "node": {
+                            "name": "Pull Records from RRS Q",
+                            "type": "receive-message",
+                            "id": "64a1cb15.f72944"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "map-iso-to-rjct-po",
+                            "type": "map-iso-to-rjct-po",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__1c7eeee0.2c65e1"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 2,
+                    "from": {
+                        "node": {
+                            "name": "map-iso-to-rjct-po",
+                            "type": "map-iso-to-rjct-po",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__1c7eeee0.2c65e1"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "Error?",
+                            "type": "switch",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__cc012e6.c4dc9d"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 3,
+                    "from": {
+                        "node": {
+                            "name": "Error?",
+                            "type": "switch",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__cc012e6.c4dc9d"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "actionId",
+                            "type": "switch",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__e3a83804.4c0928"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 4,
+                    "from": {
+                        "node": {
+                            "name": "actionId",
+                            "type": "switch",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__e3a83804.4c0928"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "CROSS_BORDER ?",
+                            "type": "switch",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__371bc9c.a10ac36"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 5,
+                    "from": {
+                        "node": {
+                            "name": "CROSS_BORDER ?",
+                            "type": "switch",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__371bc9c.a10ac36"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "fetch-orig-payment-details",
+                            "type": "fetch-orig-payment-details",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__b79e962f56072cc5"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 6,
+                    "from": {
+                        "node": {
+                            "name": "fetch-orig-payment-details",
+                            "type": "fetch-orig-payment-details",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__b79e962f56072cc5"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "Error",
+                            "type": "switch",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__eef5ba04.766618"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 7,
+                    "from": {
+                        "node": {
+                            "name": "Error",
+                            "type": "switch",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__eef5ba04.766618"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "fetch-rltd-entities",
+                            "type": "fetch-rltd-entities",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__3d17c08b308898d1"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 8,
+                    "from": {
+                        "node": {
+                            "name": "fetch-rltd-entities",
+                            "type": "fetch-rltd-entities",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__3d17c08b308898d1"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "processReq set",
+                            "type": "function",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__32755588.67b09a"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 9,
+                    "from": {
+                        "node": {
+                            "name": "processReq set",
+                            "type": "function",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__32755588.67b09a"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "create-event",
+                            "type": "create-event",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__8c3ada43.267988"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 10,
+                    "from": {
+                        "node": {
+                            "name": "create-event",
+                            "type": "create-event",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__8c3ada43.267988"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "processReq?",
+                            "type": "switch",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__50d738dd8185535a"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 11,
+                    "from": {
+                        "node": {
+                            "name": "processReq?",
+                            "type": "switch",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__50d738dd8185535a"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "Entity Type",
+                            "type": "switch",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__aeb2dc8b.6fdba"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 12,
+                    "from": {
+                        "node": {
+                            "name": "Entity Type",
+                            "type": "switch",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__aeb2dc8b.6fdba"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "enrich-rjct-for-ret",
+                            "type": "enrich-rjct-for-ret",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__50915455.3fdb8c"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 13,
+                    "from": {
+                        "node": {
+                            "name": "enrich-rjct-for-ret",
+                            "type": "enrich-rjct-for-ret",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__50915455.3fdb8c"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "check-if-force-closed",
+                            "type": "check-if-force-closed",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__253dd3e5bc4ab2dc"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 14,
+                    "from": {
+                        "node": {
+                            "name": "check-if-force-closed",
+                            "type": "check-if-force-closed",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__253dd3e5bc4ab2dc"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "reject-entity-creation",
+                            "type": "reject-entity-creation",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__8baeb3393638cee3"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 15,
+                    "from": {
+                        "node": {
+                            "name": "reject-entity-creation",
+                            "type": "reject-entity-creation",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__8baeb3393638cee3"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "reject-mh-response",
+                            "type": "reject-mh-response",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__aed4336ac32746cd"
+                        }
+                    }
+                },
+                {
+                    "stepNumber": 16,
+                    "from": {
+                        "node": {
+                            "name": "reject-mh-response",
+                            "type": "reject-mh-response",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__aed4336ac32746cd"
+                        }
+                    },
+                    "to": {
+                        "node": {
+                            "name": "FMH Response queue",
+                            "type": "send-message-no-prefix",
+                            "id": "ca358d36.f5da6__efbd9c2a.22c8c__4b0e9b5ee32c1b9a"
+                        }
+                    }
+                }
+            ]
+        }
+    },
+    "metadata": {
+        "generatedFrom": "c:\\workfiles\\payment-automation\\projects\\fbp-platform-paygentic\\docs\\INPY-RRS_to_MH-CONSUMER-RES.json",
+        "generatedAt": "2026-01-30T00:00:00.000Z",
+        "version": "1.0.0",
+        "totalPaths": 3,
+        "pathDetails": {
+            "path_1": "ACH simplified - 9 nodes",
+            "path_2": "ACH full entity - 12 nodes",
+            "path_3": "Technical comprehensive - 17 nodes"
+        }
+    }
+}

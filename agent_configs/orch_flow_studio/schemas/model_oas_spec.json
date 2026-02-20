@@ -1,0 +1,126 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/schemas/iso-common-request-kg.schema.json",
+  "title": "Models Schema Specification",
+  "description": "Schema spec for models - supports n number of properties derived from OpenAPI/spec source",
+  "type": "object",
+  "required": ["modelName", "description", "required", "properties"],
+  "properties": {
+    "modelName": {
+      "type": "string",
+      "description": "Name of the model as in the source spec",
+      "examples": ["ISOCommonRequest"],
+      "x-derivation-logic": [
+        "Use the schema name from OpenAPI components.schemas or equivalent source"
+      ]
+    },
+    "description": {
+      "type": "string",
+      "description": "High-level description of the model",
+      "x-derivation-logic": [
+        "Use the schema description from the source spec"
+      ]
+    },
+    "required": {
+      "type": "array",
+      "description": "List of required property names",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-zA-Z][a-zA-Z0-9]*$"
+      },
+      "examples": [["reqID"]],
+      "x-derivation-logic": [
+        "Copy the required array from the source schema; empty array if none"
+      ]
+    },
+    "properties": {
+      "type": "object",
+      "description": "Property specs keyed by property name; supports n number of properties",
+      "additionalProperties": {
+        "$ref": "#/definitions/propertySpec"
+      },
+      "x-derivation-logic": [
+        "One entry per property in the source schema",
+        "Key = property name (camelCase), value = propertySpec"
+      ]
+    },
+    "metadata": {
+      "$ref": "metadata-schema-spec.json#",
+      "description": "Metadata about the schema extraction"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "propertySpec": {
+      "type": "object",
+      "description": "Spec for a single property; supports scalar, object, and array types",
+      "required": ["type", "description"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["string", "number", "integer", "boolean", "object", "array"],
+          "description": "JSON/OpenAPI type of the property",
+          "x-derivation-logic": ["Map from OpenAPI type field"]
+        },
+        "description": {
+          "type": "string",
+          "description": "Business or technical description of the property",
+          "x-derivation-logic": [
+            "Prefer x-fbp-params.businessName from source, else description"
+          ]
+        },
+        "format": {
+          "type": "string",
+          "description": "Format hint when type is string",
+          "examples": ["date-time", "date", "uuid"],
+          "x-derivation-logic": ["Copy from OpenAPI format when present"]
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum length for string types",
+          "x-derivation-logic": ["Copy from OpenAPI maxLength when present"]
+        },
+        "minLength": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Minimum length for string types",
+          "x-derivation-logic": ["Copy from OpenAPI minLength when present"]
+        },
+        "maximum": {
+          "type": "number",
+          "description": "Maximum value for number/integer types",
+          "x-derivation-logic": ["Copy from OpenAPI maximum when present"]
+        },
+        "minimum": {
+          "type": "number",
+          "description": "Minimum value for number/integer types",
+          "x-derivation-logic": ["Copy from OpenAPI minimum when present"]
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Whether this property is required at model level",
+          "default": false,
+          "x-derivation-logic": [
+            "True if property name is in the model's required array"
+          ]
+        },
+        "businessName": {
+          "type": "string",
+          "description": "Business-facing name or description from x-fbp-params",
+          "x-derivation-logic": ["From x-fbp-params.businessName when available"]
+        },
+        "x-fbp-params": {
+          "type": "object",
+          "description": "Optional passthrough of source x-fbp-params for reference",
+          "x-derivation-logic": ["Preserve from source if present for assertions/values"]
+        }
+      },
+      "additionalProperties": true,
+      "x-derivation-logic": [
+        "One propertySpec per property in ISOCommonRequest or similar model",
+        "Handles n properties via parent properties object using additionalProperties"
+      ]
+    }
+  }
+}

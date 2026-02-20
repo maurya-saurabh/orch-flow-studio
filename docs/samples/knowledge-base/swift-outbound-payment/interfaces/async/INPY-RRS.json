@@ -1,0 +1,31 @@
+{
+  "asyncapi": "2.4.0",
+  "info": {
+    "title": "INPY-RRS",
+    "version": "1.0.0",
+    "description": "A spec file for INPY RRS",
+    "x-fbp-generated": "2024-08-18 19:34:25"
+  },
+  "defaultContentType": "application/json",
+  "channels": {
+    "INPY-RRS": {
+      "description": "INPY RRS channel",
+      "subscribe": {
+        "summary": "INPY RRS message published.",
+        "operationId": "onINPYRRSMessage",
+        "message": {
+          "description": "INPY RRS message payload",
+          "payload": {
+            "$ref": "../models/PymtSchmParam.json#/components/schemas/PymtSchmParam"
+          }
+        },
+        "examples": {
+          "$ref": "../modelTestParams/PymtSchmParam.json#/payloads/request"
+        }
+      },
+      "x-fbp-params": {
+        "type": "external"
+      }
+    }
+  }
+}

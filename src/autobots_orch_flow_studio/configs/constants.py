@@ -25,10 +25,6 @@ EXTRACTION_GUIDE_PATH = f"{EXTRACTION_GUIDE_DIR}/{EXTRACTION_GUIDE_FILE}"
 
 NODE_META_DIR = f"{KB_PATH}/{OEPY_DOCS_DIR}/{AGENTIC_GENERATOR_META_DIR}/{KG_NODE_META_DIR}"
 
-# LLD processor: base directory for split MD output (one subfolder per source MD)
-LLD_SPLIT_MD_SUBDIR = "lld-split"
-# LLD_SPLIT_OUTPUT_BASE_DIR = f"{KB_PATH}/{OEPY_DOCS_DIR}/{AGENTIC_GENERATOR_META_DIR}/{LLD_SPLIT_MD_SUBDIR}"
-LLD_SPLIT_OUTPUT_BASE_DIR = f"{KB_PATH}/{LLD_SPLIT_MD_SUBDIR}"
 
 # ---------------------------------------------------------------------------
 # Agent names
@@ -80,3 +76,11 @@ CURRENT_DIR = "."
 KB_PATH = "knowledge_base/payments"
 PROCESSING_UNITS_DIR = "processing-units"
 NODE_REGISTRY_FILE = "node-registry.json"
+
+# LLD processor: base directory for split MD output (one subfolder per source MD)
+LLD_SPLIT_MD_SUBDIR = "lld-split"
+# LLD_SPLIT_OUTPUT_BASE_DIR = f"{KB_PATH}/{OEPY_DOCS_DIR}/{AGENTIC_GENERATOR_META_DIR}/{LLD_SPLIT_MD_SUBDIR}"
+LLD_SPLIT_OUTPUT_BASE_DIR = (
+    f"/Users/saurabh/Documents/server/orch-ai-studio/data/{LLD_SPLIT_MD_SUBDIR}"
+)
+INPUT_LLD_DIR = "/Users/saurabh/Documents/server/orch-ai-studio/orch-flow-studio/docs/sample_md"

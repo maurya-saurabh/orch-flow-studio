@@ -1,11 +1,10 @@
 # ABOUTME: Split a single LLD MD file into multiple MD files by first-level (#) headers.
 
-import argparse
 import re
-import sys
 from pathlib import Path
 
 from autobots_orch_flow_studio.configs.constants import (
+    INPUT_LLD_DIR,
     LLD_SPLIT_OUTPUT_BASE_DIR,
 )
 
@@ -18,9 +17,7 @@ def _slugify(text: str) -> str:
     return s or "section"
 
 
-def _flush_section(
-    sections: list[tuple[str, str]], title: str, body_lines: list[str]
-) -> None:
+def _flush_section(sections: list[tuple[str, str]], title: str, body_lines: list[str]) -> None:
     body = "\n".join(body_lines).strip()
     if title or body:
         sections.append((title or "Intro", body))
@@ -49,7 +46,7 @@ def split_by_first_level_headers(content: str) -> list[tuple[str, str]]:
     return sections
 
 
-def process_lld_md(md_path: str | Path) -> Path:
+def process_lld_md(filename: str | Path) -> Path:
     """Read an MD file, split by first-level headers, write one MD per section into a named folder.
 
     Output folder is {LLD_SPLIT_OUTPUT_BASE_DIR}/{md_stem}/. Each section is written as
@@ -64,6 +61,7 @@ def process_lld_md(md_path: str | Path) -> Path:
     Raises:
         FileNotFoundError: If md_path does not exist.
     """
+    md_path = Path(INPUT_LLD_DIR, filename)
     path = Path(md_path)
     if not path.exists():
         raise FileNotFoundError(f"MD file not found: {path}")
@@ -72,7 +70,7 @@ def process_lld_md(md_path: str | Path) -> Path:
     sections = split_by_first_level_headers(content)
 
     stem = path.stem
-    out_dir = Path(LLD_SPLIT_OUTPUT_BASE_DIR) / stem
+    out_dir = Path(LLD_SPLIT_OUTPUT_BASE_DIR, stem)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     for i, (title, body) in enumerate(sections):
@@ -91,31 +89,5 @@ def process_lld_md(md_path: str | Path) -> Path:
     return out_dir
 
 
-def main() -> int:
-    """Run from CLI: input_path + filename = actual MD file; output path from constants."""
-    parser = argparse.ArgumentParser(
-        description="Split an LLD MD file by first-level headers. Output written to constant base path."
-    )
-    parser.add_argument(
-        "input_path",
-        type=Path,
-        help="Base directory containing the input MD file",
-    )
-    parser.add_argument(
-        "filename",
-        type=str,
-        help="Input MD filename (e.g. doc.md). Actual file = input_path/filename",
-    )
-    args = parser.parse_args()
-    actual_file = args.input_path / args.filename
-    if not actual_file.exists():
-        print(f"Error: file not found: {actual_file}", file=sys.stderr)
-        return 1
-    out_dir = process_lld_md(actual_file)
-    print(f"Output (from constant): {LLD_SPLIT_OUTPUT_BASE_DIR}")
-    print(f"Wrote {len(list(out_dir.glob('*.md')))} files to: {out_dir}")
-    return 0
-
-
 if __name__ == "__main__":
-    sys.exit(main())
+    out_dir = process_lld_md("MER-12345---Party-Feature.md")

@@ -51,7 +51,8 @@ agents:
     batch_enabled: true
 
   model_oas_generator:
-    prompt: "flow_code_generator"
+    prompt: "model_oas_generator",
+    output_schema: "model-oas-schema-spec.json"
     tools:
       - get_context
       - read_file_tool
