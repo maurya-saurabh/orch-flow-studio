@@ -34,11 +34,10 @@ Use only these patterns. Do **not** add a leading slash. Do **not** add extra pr
 The file at the read path is JSON in one of two forms:
 
 **A) Object keyed by endpoint (common):**  
-`{ "fetchEventData": { "endpoint": "fetchEventData", "modelName": "EventLogInq", "input": [], "output": "EventLog", "business description": "..." }, ... }`  
-→ Use the user’s **endpoint** as the key: `methodObj = parsed[endpoint]`.
+The JSON is an object whose keys are endpoint names; each value has "endpoint", "modelName", "input", "output", "business description". Example key: "fetchEventData". Use the user's **endpoint** as the key: methodObj = parsed[endpoint].
 
 **B) Array of method objects:**  
-`[ { "endpoint": "fetchEventData", "modelName": "EventLogInq", "input": [], "output": "EventLog", "business description": "..." }, ... ]`  
+The JSON is an array of objects; each has "endpoint", "modelName", "input", "output", "business description". Find the one where obj.endpoint equals the user's endpoint.  
 → Find the one object where `obj.endpoint === endpoint`.
 
 Each method object has:
@@ -75,44 +74,44 @@ Use this structure. Replace **ModelName**, **endpointName**, **description**, an
 const logger = require('oe-logger')('ModelName');
 const isDebugEnabled = logger.isDebugEnabled;
 
-module.exports = function (ModelName) {
-  ModelName.endpointName = function (data, options, cb) {
-    if (isDebugEnabled) { logger.debug('endpointName', data, options, cb); }
-    if (!data) {
+module.exports = function (ModelName) {{
+  ModelName.endpointName = function (data, options, cb) {{
+    if (isDebugEnabled) {{ logger.debug('endpointName', data, options, cb); }}
+    if (!data) {{
       return cb('No filter passed');
-    }
-    if (!data.where) {
-      data = {
+    }}
+    if (!data.where) {{
+      data = {{
         where: data
-      };
-    }
+      }};
+    }}
     let result = new Object();
     return cb(null, result);
-  };
+  }};
 
-  ModelName.remoteMethod('endpointName', {
-    http: {
+  ModelName.remoteMethod('endpointName', {{
+    http: {{
       verb: 'GET'
-    },
+    }},
     accepts: [
-      {
+      {{
         arg: 'filter',
         type: 'object',
-        http: { source: 'query' }
-      },
-      {
+        http: {{ source: 'query' }}
+      }},
+      {{
         arg: 'res',
         type: 'object',
-        http: { source: 'res' }
-      }
+        http: {{ source: 'res' }}
+      }}
     ],
     description: 'description from sync method object',
-    returns: {
+    returns: {{
       type: '[OutputType]',
       root: true
-    }
-  });
-};
+    }}
+  }});
+}};
 ```
 
 ---
