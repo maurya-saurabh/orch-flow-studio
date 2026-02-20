@@ -2,6 +2,12 @@
 # ABOUTME: Defines 3 agents: welcome, joke, and weather agents
 
 agents:
+  coordinator:
+      prompt: "coordinator"
+      is_default: Y
+      tools:
+        - handoff
+  
   model_oas_generator:
     prompt: "model_oas_generator"
     output_schema: "model_oas_spec.json"
