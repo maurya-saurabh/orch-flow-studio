@@ -1,5 +1,50 @@
 {
-  "type": "syncMethods",
-  "title": "Sync Methods",
-  "methods": []
+  "modelName": "ErrorUtil",
+  "dependencies": [
+    "oe-logger",
+    "mustache",
+    "lodash.merge",
+    "path"
+  ],
+  "constants": [
+    "constants/errorConstants.json",
+    "../../constants/errorConstants.json"
+  ],
+  "moduleLevel": {
+    "errList": "Cache for error details",
+    "mustacheConfig": "mustache.escape = function (text) { return text; }"
+  },
+  "staticProperties": [
+    {
+      "name": "ERRORCONSTANTS",
+      "mergeOrder": "obj over allErrorConstants"
+    }
+  ],
+  "methods": [
+    {
+      "name": "attachErrConstants",
+      "do": "Merge obj over allErrorConstants"
+    },
+    {
+      "name": "getError",
+      "parameters": ["errCode", "arg", "suspObj", "cb"],
+      "do": "Cache check, fetch from SchmProvider.fetchReasonCodeDtls if missing, template with mustache.render(), return true if suspended (decision='A')"
+    },
+    {
+      "name": "getErrorPromise",
+      "parameters": ["errorConst", "args", "suspObj (optional)"],
+      "do": "Lookup ERRORCONSTANTS[errorConst], call getError() in Promise"
+    },
+    {
+      "name": "getRawErrMsg",
+      "parameters": ["errCode", "cb"],
+      "do": "Get raw message from cache or SchmProvider.fetchReasonCodeDtls"
+    }
+  ],
+  "externalDependencies": [
+    {
+      "model": "SchmProvider",
+      "method": "fetchReasonCodeDtls"
+    }
+  ]
 }
