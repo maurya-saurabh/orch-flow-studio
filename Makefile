@@ -168,7 +168,7 @@ export-requirements:
 
 # Run Orch Flow Studio Chainlit UI in development mode
 chainlit-dev:
-	DYNAGENT_CONFIG_ROOT_DIR=agent_configs/orch_flow_studio $(CHAINLIT) run $(CHAINLIT_APP) --port $(CHAINLIT_PORT) --host 127.0.0.1
+	PYTHONPATH=src DYNAGENT_CONFIG_ROOT_DIR=agent_configs/orch_flow_studio $(CHAINLIT) run $(CHAINLIT_APP) --port $(CHAINLIT_PORT) --host 127.0.0.1
 
 # Run Customer Support Chainlit UI
 chainlit-customer-support:

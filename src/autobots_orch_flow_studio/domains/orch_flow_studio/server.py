@@ -5,8 +5,14 @@ import asyncio
 import json
 import logging
 import os
+import sys
 import time
 from pathlib import Path
+
+# Ensure package root (src) is on path when run by file path (e.g. chainlit run server.py)
+_src = Path(__file__).resolve().parents[3]
+if str(_src) not in sys.path:
+    sys.path.insert(0, str(_src))
 
 import chainlit as cl
 import httpx
