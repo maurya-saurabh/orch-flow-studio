@@ -2,7 +2,7 @@
 
 import json
 import uuid
-from typing import TYPE_CHECKING, Any
+from pathlib import Path
 
 from autobots_devtools_shared_lib.common.observability import (
     TraceMetadata,
@@ -10,23 +10,23 @@ from autobots_devtools_shared_lib.common.observability import (
     init_tracing,
     set_conversation_id,
 )
-from autobots_devtools_shared_lib.dynagent import AgentMeta, invoke_agent
+from autobots_devtools_shared_lib.dynagent import (
+    AgentMeta,
+    BatchResult,
+    batch_invoker,
+    get_batch_enabled_agents,
+)
 from dotenv import load_dotenv
-
-if TYPE_CHECKING:
-    from langchain_core.runnables import RunnableConfig
 
 from autobots_orch_flow_studio.configs.constants import (
     KB_PATH,
-    KBE_APP_NAME,
-    SCHEMA_PROCESSOR_AGENT,
 )
 
 logger = get_logger(__name__)
 load_dotenv()
 init_tracing()
 
-APP_NAME = KBE_APP_NAME
+APP_NAME = "orch-flow-studio"
 
 
 def _compose_user_message(schema: dict, kb_path: str) -> str:
@@ -34,10 +34,89 @@ def _compose_user_message(schema: dict, kb_path: str) -> str:
     return json.dumps({"kb_path": kb_path, "schema": schema})
 
 
-def build_node_kg(
-    session_id: str = str(uuid.uuid4()),
-    enable_tracing: bool = True,
-) -> dict[str, Any]:
+def _fetch_models_list(filename: str) -> list[str]:
+    """Fetch the list of model names from the input JSON file.
+
+    Reads 1-models.json from data/<filename>/json/ and returns the top-level
+    keys as a list of strings.
+
+    Args:
+        filename: Directory name under INPUT_DATA_BASE_PATH (e.g. MER-12345---Party-Feature).
+
+    Returns:
+        List of first-level keys from the JSON (model names).
+    """
+    models_path = Path(
+        "/Users/kishankumar/Documents/Docs/hackathon/autobots-multi-repo-ws/orch-flow-studio/docs/", filename, "json", "4-behaviours.json"
+    )
+    with models_path.open(encoding="utf-8") as f:
+        data = json.load(f)
+    logger.info(f"Models list: {data}")
+    records = []
+    for model in data.keys():
+        text = f"file: {filename}, model: {model}"
+        records.append(text)
+    return records
+
+
+def model_oas_batch(agent_name: str, records: list[str], user_id: str) -> BatchResult:
+    """Run a batch through dynagent, gated to NURTURE batch-enabled agents only.
+
+    Args:
+        agent_name: Must be a batch-enabled agent from agents.yaml.
+        records:    Non-empty list of plain-string prompts.
+        user_id:    User ID for tracing.
+
+    Returns:
+        BatchResult forwarded from batch_invoker.
+
+    Raises:
+        ValueError: If agent_name is not batch-enabled or records is empty.
+    """
+    session_id = str(uuid.uuid4())
+    set_conversation_id(session_id)
+    logger.info(
+        f"nurture_batch starting: agent={agent_name} records={len(records)} user_id={user_id}"
+    )
+
+    codegen_agents = get_batch_enabled_agents()
+
+    if agent_name not in codegen_agents:
+        raise ValueError(
+            f"Agent '{agent_name}' is not enabled for batch processing. "
+            f"Valid batch-enabled agents: {', '.join(codegen_agents)}"
+        )
+
+    if not records:
+        raise ValueError("records must not be empty")
+
+    init_tracing()
+
+    trace_metadata = TraceMetadata.create(
+        session_id=session_id,
+        app_name=f"{APP_NAME}_{agent_name}-batch_invoker",
+        user_id=user_id,
+        tags=[APP_NAME, agent_name, "batch"],
+    )
+
+    result = batch_invoker(
+        agent_name,
+        records,
+        trace_metadata=trace_metadata,
+    )
+
+    logger.info(
+        f"nurture_batch complete: agent={agent_name} successes={len(result.successes)} "
+        f"failures={len(result.failures)}"
+    )
+
+    return result
+
+
+def build_model_oas(
+    session_id: str | None = None,
+    filename: str = "",
+) -> BatchResult:
     """Orchestrate the Node KG build pipeline (steps 1-2).
 
     1. Retrieve the Node KG Schema for the ``node_kg_extraction`` agent.
@@ -57,37 +136,23 @@ def build_node_kg(
     """
 
     # --- Step 1: Get Node KG Schema ----------------------------------------
-    logger.info("Step 1 - Retrieving Node KG Schema for agent 'node_kg_extraction'")
+    logger.info("Step 1 - Retrieving Node KG Schema for agent 'processing_unit_oas_generator'")
     meta = AgentMeta.instance()
-    schema: dict | None = meta.schema_map.get("node_kg_extraction")
+    schema: dict | None = meta.schema_map.get("processing_unit_oas_generator")
     if schema is None:
-        raise ValueError("Failed to retrieve schema for agent 'node_kg_extraction'")
+        raise ValueError("Failed to retrieve schema for agent 'processing_unit_oas_generator'")
 
     logger.info("Schema retrieved successfully (%d chars)", len(schema))
 
     # --- Step 2: Invoke schema_processor agent -----------------------------
-    agent_name = SCHEMA_PROCESSOR_AGENT
+    agent_name = "processing_unit_oas_generator"
     logger.info(f"Step 2 - invoking '{agent_name}' agent with KB_PATH={KB_PATH}")
 
-    user_message: str = _compose_user_message(schema, KB_PATH)
-
+    if session_id is None:
+        session_id = str(uuid.uuid4())
     set_conversation_id(session_id)
 
     logger.info(f"🔑 Generated session_id: {session_id}")
-
-    config: RunnableConfig = {
-        "configurable": {
-            "thread_id": session_id,
-            "agent_name": agent_name,
-            "app_name": APP_NAME,
-        },
-    }
-
-    input_state: dict = {
-        "messages": [{"role": "user", "content": user_message}],
-        "agent_name": agent_name,
-        "session_id": session_id,
-    }
 
     # Prepare trace metadata
     trace_metadata = TraceMetadata(
@@ -98,20 +163,19 @@ def build_node_kg(
     )
 
     logger.info(f"Invoking SYNC agent '{agent_name}' for {APP_NAME}")
-    result = invoke_agent(
-        agent_name=agent_name,
-        input_state=input_state,
-        config=config,
+    records = _fetch_models_list(filename)
+    result = batch_invoker(
+        agent_name,
+        records,
         trace_metadata=trace_metadata,
-        enable_tracing=enable_tracing,
     )
 
     logger.info(f"Prompt generated successfully for {APP_NAME}")
-
     return result
 
 
 if __name__ == "__main__":
     logger.info("Running node-kb-builder")
-    build_result = build_node_kg()
-    logger.info(f"Build result keys: {list(build_result.keys())}")
+    build_result = build_model_oas(filename="MER-12345---Party-Feature")
+    # models_list = _fetch_models_list("MER-12345---Party-Feature")
+    # logger.info(f"Models list: {models_list}")
